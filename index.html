@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงเวลาปฏิบัติงาน (HR System)</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-hover: #3a53d0;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --bg: #eef2f6;
+            --card-bg: #ffffff;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--dark); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .box { 
+            background: var(--card-bg); 
+            padding: 30px; 
+            border-radius: var(--radius); 
+            box-shadow: var(--shadow); 
+            margin-bottom: 20px;
+        }
+
+        .login-box { max-width: 400px; margin: 80px auto; text-align: center; }
+
+        .hidden { display: none !important; }
+
+        /* Typography */
+        h2 { color: var(--dark); margin-top: 0; font-weight: 600; }
+        h3 { color: var(--primary); font-weight: 500; }
+        p { margin: 8px 0; }
+        .text-primary { color: var(--primary); font-weight: 600; }
+
+        /* Form Elements */
+        input, select, textarea { 
+            width: 100%; 
+            padding: 12px 15px; 
+            margin: 8px 0 15px 0; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-family: 'Prompt', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+
+        /* Buttons */
+        button { 
+            padding: 12px 20px; 
+            margin: 5px 0; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 8px; 
+            color: white; 
+            font-family: 'Prompt', sans-serif;
+            font-size: 15px;
+            font-weight: 500; 
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .btn-primary { background: var(--primary); width: 100%; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-green { background: var(--success); }
+        .btn-green:hover { background: var(--success-hover); }
+        .btn-red { background: var(--danger); }
+        .btn-red:hover { background: var(--danger-hover); }
+        .btn-yellow { background: var(--warning); color: #fff; }
+        .btn-yellow:hover { background: var(--warning-hover); }
+        .btn-grey { background: var(--gray); }
+        .btn-outline { background: transparent; color: var(--danger); border: 1px solid var(--danger); box-shadow: none; }
+        .btn-outline:hover { background: var(--danger); color: white; }
+
+        /* Header Bar */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--light-gray);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .app-header h2 { margin: 0; font-size: 22px; }
+
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn { 
+            background: var(--light-gray); 
+            color: var(--gray); 
+            border-radius: 8px; 
+            margin: 0; 
+            padding: 10px 18px; 
+            box-shadow: none;
+        } 
+        .tab-btn:hover { background: #e5e7eb; color: var(--dark); transform: none; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2); }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #e5e7eb; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; white-space: nowrap; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 12px 15px; text-align: left; }
+        th { background: #f9fafb; color: var(--dark); font-weight: 600; text-transform: uppercase; font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f9fafb; }
+        
+        /* Map & Camera */
+        #map-employee, #map-hr { height: 300px; width: 100%; border-radius: 8px; margin: 15px 0; z-index: 1; border: 1px solid #d1d5db; }
+        .camera-box { text-align: center; margin: 15px 0; background: #111; border-radius: 8px; overflow: hidden; padding-top: 10px; }
+        #videoElement { width: 100%; max-width: 400px; display: block; margin: auto; border-radius: 4px; }
+        #canvasElement { display: none; }
+        
+        .edit-box { background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+
+        /* Dashboard Cards */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-top: 10px; }
+        .card { background: white; padding: 25px 20px; border-radius: 12px; text-align: center; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s; }
+        .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+        .card h3 { margin: 0; font-size: 36px; color: var(--primary); }
+        .card p { margin: 10px 0 0 0; color: var(--gray); font-size: 14px; font-weight: 500; }
+        
+        .timeline-item { border-left: 4px solid var(--primary); padding: 12px 15px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 8px 8px 0; font-size: 14px;}
+        
+        .filter-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .filter-row input { margin: 0; flex: 1; }
+        .filter-row button { margin: 0; white-space: nowrap; }
+
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .mt-3 { margin-top: 1rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .flex-gap { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="box login-box" id="loginSec">
+        <h2 style="color: var(--primary); font-size: 28px; margin-bottom: 25px;">🔒 เข้าสู่ระบบ</h2>
+        <input type="text" id="user" placeholder="ชื่อผู้ใช้งาน (Username)">
+        <input type="password" id="pass" placeholder="รหัสผ่าน (Password)">
+        <button class="btn-primary" onclick="login()">เข้าสู่ระบบ</button>
+        <p id="loginMsg" style="color:var(--danger); font-weight:500; margin-top:15px;"></p>
+    </div>
+
+    <div class="box hidden" id="empSec">
+        <div class="app-header">
+            <h2>สวัสดีคุณ <span id="empName" class="text-primary"></span></h2>
+            <button class="btn-outline" onclick="logout()">ออกจากระบบ</button>
+        </div>
+        
+        <div class="tabs-container">
+            <button class="tab-btn active" id="btnEmpTabCheckin" onclick="switchEmpTab('checkin')">📷 ลงเวลาทำงาน</button>
+            <button class="tab-btn" id="btnEmpTabHistory" onclick="switchEmpTab('history')">🕒 ประวัติของฉัน</button>
+            <button class="tab-btn" id="btnEmpTabRequest" onclick="switchEmpTab('request')">📝 คำขอลา/แก้ไข</button>
+        </div>
+        
+        <div id="emp-tab-checkin">
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <p style="margin:0; font-size: 15px;">📍 สถานที่: <b id="empLocName" style="color:var(--success);">กำลังโหลด...</b></p>
+                <p id="gpsStatus" style="margin:5px 0 0 0; font-weight:600; color:var(--warning);">กำลังค้นหาตำแหน่ง...</p>
+            </div>
+            
+            <button class="btn-grey" onclick="refreshGPS()" style="width: 100%; margin: 15px 0;">🔄 อัปเดตตำแหน่งล่าสุด</button>
+            
+            <div id="map-employee" class="hidden"></div>
+            
+            <div class="camera-box hidden" id="cameraDiv">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="canvasElement"></canvas>
+                <p style="color:#ccc; font-size:13px;">กรุณาหันหน้าเข้ากล้องเพื่อบันทึกภาพยืนยัน</p>
+            </div>
+            
+            <div class="mt-3 text-center">
+                <div class="flex-gap" style="justify-content: center; margin-bottom: 10px;">
+                    <button id="btnIn" class="btn-green hidden" onclick="checkIn('เข้างาน')" style="flex: 1; padding: 16px; font-size: 16px;">▶️ เข้างาน</button>
+                    <button id="btnOut" class="btn-red hidden" onclick="checkIn('ออกงาน')" style="flex: 1; padding: 16px; font-size: 16px;">⏹️ ออกงาน</button>
+                </div>
+                <button id="btnLeave" class="btn-yellow hidden" onclick="checkIn('ลา')" style="width: 100%; padding: 16px; font-size: 16px;">🗓️ กดลางาน (ถ่ายรูปยืนยัน)</button>
+            </div>
+            <p id="empMsg" class="text-center mt-3"></p>
+        </div>
+
+        <div id="emp-tab-history" class="hidden">
+            <div class="filter-row">
+                <input type="text" id="searchMyLogs" onkeyup="filterTable('searchMyLogs', 'tb-mylogs')" placeholder="🔍 ค้นหาวันที่, เวลา, สถานะ...">
+                <button onclick="loadMyLogs()" class="btn-primary" style="width: auto;">รีเฟรช</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>เวลา</th><th>สถานะ</th><th>สถานที่</th><th>รูปภาพ</th></tr></thead>
+                    <tbody id="tb-mylogs"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="emp-tab-request" class="hidden">
+            <select id="reqType" onchange="toggleReqForm()">
+                <option value="time">คำขอแก้ไขเวลาทำงาน</option>
+                <option value="leave">คำขอลาหยุด (ระบุวันที่)</option>
+            </select>
+            
+            <div id="formTimeEdit" class="edit-box" style="background:#fffbeb; border-color:#fef08a;">
+                <h3 style="color:#d97706; margin-top:0;">📝 แก้ไขเวลาทำงาน</h3>
+                <select id="timeEditType">
+                    <option value="ลืมเช็คอิน">ลืมเช็คอิน</option>
+                    <option value="ลืมเช็คเอาท์">ลืมเช็คเอาท์</option>
+                    <option value="แก้ไขเวลาผิดพลาด">แก้ไขเวลาที่ผิดพลาด</option>
+                </select>
+                <div class="flex-gap">
+                    <input type="date" id="timeEditDate">
+                    <input type="time" id="timeEditTime">
+                </div>
+                <textarea id="timeReason" rows="3" placeholder="ระบุเหตุผลที่ขอแก้ไข..."></textarea>
+                <p style="font-size: 13px; margin: 0 0 5px 0;">แนบหลักฐาน (ถ้ามี):</p>
+                <input type="file" id="timeFile" accept="image/*" style="padding: 8px;">
+                <button class="btn-yellow" onclick="submitRequest('time')" style="width: 100%; margin-top: 10px;">ส่งคำขอแก้ไข</button>
+            </div>
+            
+            <div id="formLeave" class="edit-box hidden" style="background:#f3f4f6; border-color:#e5e7eb;">
+                <h3 style="color:#374151; margin-top:0;">🗓️ ขอลาหยุด</h3>
+                <select id="leaveType">
+                    <option value="ลากิจ">ลากิจ</option>
+                    <option value="ลาป่วย">ลาป่วย (แนบใบรับรองแพทย์)</option>
+                    <option value="ลาพักร้อน">ลาพักร้อน</option>
+                </select>
+                <div class="flex-gap">
+                    <div style="flex:1"><label style="font-size:13px;">เริ่มวันที่:</label><input type="date" id="leaveStart"></div>
+                    <div style="flex:1"><label style="font-size:13px;">ถึงวันที่:</label><input type="date" id="leaveEnd"></div>
+                </div>
+                <textarea id="leaveReason" rows="3" placeholder="ระบุเหตุผลการลา..."></textarea>
+                <p style="font-size: 13px; margin: 0 0 5px 0;">แนบเอกสาร (ถ้ามี):</p>
+                <input type="file" id="leaveFile" accept="image/*,application/pdf" style="padding: 8px;">
+                <button class="btn-primary" onclick="submitRequest('leave')" style="width: 100%; margin-top: 10px;">ส่งคำขอลา</button>
+            </div>
+            <p id="reqMsg" class="text-center mt-3" style="color:var(--success); font-weight:600;"></p>
+        </div>
+    </div>
+
+    <div class="box hidden" id="hrSec">
+        <div class="app-header">
+            <h2>📊 <span id="roleTitle" class="text-primary">Dashboard</span></h2>
+            <button class="btn-outline" onclick="logout()">ออกจากระบบ</button>
+        </div>
+        
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">ภาพรวม</button>
+            <button class="tab-btn" onclick="switchTab('logs')">ประวัติเวลา</button>
+            <button class="tab-btn" onclick="switchTab('approvals')">คำขอ</button>
+            <button class="tab-btn" id="tabBtnUsers" onclick="switchTab('users')">พนักงาน</button>
+            <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">สถานที่</button>
+        </div>
+        
+        <div id="tab-dashboard">
+            <div class="grid-cards">
+                <div class="card"><h3 id="dashIn">0</h3><p>เข้างานวันนี้</p></div>
+                <div class="card"><h3 id="dashOut" style="color: var(--success);">0</h3><p>ออกงานวันนี้</p></div>
+                <div class="card"><h3 id="dashLeave" style="color: var(--danger);">0</h3><p>ลางาน</p></div>
+                <div class="card"><h3 id="dashPending" style="color: var(--warning);">0</h3><p>รออนุมัติ</p></div>
+            </div>
+            
+            <div class="edit-box" style="margin-top: 20px; overflow-y:auto; max-height:300px;">
+                <h3 style="margin-top: 0; color:var(--dark);">⚡ ความเคลื่อนไหวล่าสุด</h3>
+                <div id="activityTimeline"><p style="color:var(--gray); font-size:14px;">กำลังโหลด...</p></div>
+            </div>
+            
+            <div class="text-center" style="margin-top: 25px; background: #e0e7ff; padding: 25px; border-radius: var(--radius); border: 1px solid #c7d2fe;">
+                <h3 style="margin-top: 0; color: #4338ca;">📥 ดาวน์โหลดรายงานสมบูรณ์</h3>
+                <p style="font-size: 14px; color: #4f46e5; margin-bottom: 15px;">ดึงข้อมูลพนักงาน, ประวัติเวลา และคำขอต่างๆ แยกเป็น Sheet ให้ในไฟล์ Excel</p>
+                <a id="btnExportExcel" href="#" target="_blank" style="text-decoration: none;">
+                    <button class="btn-primary" style="padding: 14px 30px; font-size: 16px; width: auto;">📊 ดาวน์โหลดไฟล์ Excel (.xlsx)</button>
+                </a>
+            </div>
+        </div>
+
+        <div id="tab-logs" class="hidden">
+            <div class="filter-row">
+                <input type="text" id="searchHrLogs" onkeyup="filterTable('searchHrLogs', 'tb-logs')" placeholder="🔍 ค้นหาชื่อ, เวลา, สถานที่...">
+                <button onclick="loadLogs()" class="btn-primary" style="width: auto;">รีเฟรชข้อมูล</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>เวลา</th><th>ชื่อ-สกุล</th><th>สถานะ</th><th>สถานที่</th><th>รูปถ่าย</th></tr></thead>
+                    <tbody id="tb-logs"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-approvals" class="hidden">
+            <div class="text-center mb-3"><button onclick="loadRequests()" class="btn-primary" style="width: auto;">🔄 รีเฟรชคำขอทั้งหมด</button></div>
+            
+            <h3 style="color:#b45309;">📝 คำขอแก้ไขเวลาทำงาน</h3>
+            <div class="table-responsive mb-3">
+                <table>
+                    <thead><tr><th>พนักงาน</th><th>ประเภท</th><th>เวลาที่ขอ</th><th>Sup</th><th>HR</th><th>จัดการ</th></tr></thead>
+                    <tbody id="tb-req-time"></tbody>
+                </table>
+            </div>
+            
+            <h3 style="color:#1f2937; margin-top:25px;">🗓️ คำขอลาหยุด</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>พนักงาน</th><th>ประเภท</th><th>วันที่ลา (วัน)</th><th>Sup</th><th>HR</th><th>จัดการ</th></tr></thead>
+                    <tbody id="tb-req-leave"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-users" class="hidden">
+            <div id="addUserDiv" class="edit-box">
+                <h3 style="margin-top:0;">➕ เพิ่มพนักงานใหม่</h3>
+                <div class="flex-gap">
+                    <input type="text" id="newU" placeholder="ชื่อผู้ใช้ (Username)">
+                    <input type="password" id="newP" placeholder="รหัสผ่าน">
+                </div>
+                <select id="newR">
+                    <option value="employee">พนักงาน (Employee)</option>
+                    <option value="supervisor">หัวหน้างาน (Supervisor)</option>
+                    <option value="hr">แอดมิน (HR)</option>
+                </select>
+                <button class="btn-primary" onclick="addUser()">บันทึกพนักงาน</button>
+            </div>
+            
+            <div id="editUserDiv" class="edit-box hidden" style="background:#fffbeb; border-color:#fef08a;">
+                <h3 style="margin-top:0; color:#d97706;">✏️ แก้ไขข้อมูล: <span id="editOldUserSpan"></span></h3>
+                <input type="hidden" id="editOldUser">
+                <div class="flex-gap">
+                    <input type="text" id="editU" placeholder="ชื่อผู้ใช้ใหม่">
+                    <input type="text" id="editP" placeholder="รหัสผ่านใหม่">
+                </div>
+                <select id="editR">
+                    <option value="employee">พนักงาน</option><option value="supervisor">หัวหน้างาน</option><option value="hr">แอดมิน</option>
+                </select>
+                <div class="flex-gap">
+                    <button class="btn-yellow" onclick="saveEditUser()" style="flex:1;">💾 บันทึก</button>
+                    <button class="btn-grey" onclick="cancelEditUser()" style="flex:1;">ยกเลิก</button>
+                </div>
+            </div>
+            
+            <div class="table-responsive mt-3">
+                <table>
+                    <thead><tr><th>ชื่อผู้ใช้งาน</th><th>รหัสผ่าน</th><th>ระดับสิทธิ์</th><th>จัดการ</th></tr></thead>
+                    <tbody id="tb-users"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-settings" class="hidden">
+            <div class="edit-box">
+                <h3 id="locFormTitle" style="margin-top:0;">📍 ตั้งค่าจุดเช็คอิน</h3>
+                <div class="filter-row">
+                    <input type="text" id="searchPlaceInput" placeholder="พิมพ์ชื่อสถานที่เพื่อค้นหาบนแผนที่...">
+                    <button class="btn-grey" onclick="searchLocation()" style="width: auto;">🔍 ค้นหา</button>
+                </div>
+                
+                <div id="map-hr"></div>
+                <p style="font-size:13px; color:var(--gray); text-align:center;">*คลิกหรือเลื่อนหมุดบนแผนที่เพื่อจับพิกัดอัตโนมัติ</p>
+                
+                <input type="hidden" id="editOldLocName">
+                <input type="text" id="setLocName" placeholder="ตั้งชื่อสถานที่ (เช่น สำนักงานใหญ่)" style="font-weight: 500;">
+                
+                <div class="flex-gap">
+                    <input type="text" id="setLat" placeholder="ละติจูด" readonly style="background: var(--light-gray);">
+                    <input type="text" id="setLon" placeholder="ลองจิจูด" readonly style="background: var(--light-gray);">
+                </div>
+                
+                <label style="font-size:14px; font-weight:500;">รัศมีที่อนุญาต (เมตร):</label>
+                <input type="number" id="setRad" placeholder="เช่น 100" oninput="updateHrCircleRadius()">
+                
+                <div class="flex-gap mt-3">
+                    <button class="btn-primary" id="btnSaveLoc" onclick="saveLocation()" style="flex:1;">💾 บันทึกสถานที่</button>
+                    <button class="btn-outline hidden" id="btnCancelLoc" onclick="cancelEditLoc()" style="flex:1;">ยกเลิก</button>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 25px;">🏢 รายชื่อสถานที่ทั้งหมด</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ชื่อสถานที่</th><th>รัศมี (ม.)</th><th>จัดการ</th></tr></thead>
+                    <tbody id="tb-locations"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ********* ใส่ URL WEB APP ของคุณที่นี่ *********
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbw5Qx1GSo8B7-x4HV2pn-dNE1opT7S0t58l4O4F_cwV4qGQDayUzq22Sx4o0uDbe9q3/exec'; 
+    
+    let currentUser = '', currentRole = '';
+    let allLocations = [];
+    let myLat = 0, myLon = 0, myDistance = 0, targetLocName = '';
+    let empMapObj = null, hrMapObj = null, hrMarker = null, hrCircle = null;
+    let videoStream = null;
+
+    function filterTable(inputId, tbodyId) {
+        let input = document.getElementById(inputId).value.toLowerCase();
+        let tr = document.getElementById(tbodyId).getElementsByTagName("tr");
+        for (let i = 0; i < tr.length; i++) {
+            let textContent = tr[i].textContent.toLowerCase();
+            if(textContent.includes("กำลังโหลด") || textContent.includes("ไม่มีประวัติ")) continue;
+            if (textContent.indexOf(input) > -1) { tr[i].style.display = ""; } 
+            else { tr[i].style.display = "none"; }
+        }
+    }
+
+    function login() {
+        document.getElementById('loginMsg').innerText = 'กำลังตรวจสอบ...';
+        let body = new URLSearchParams({ action: 'login', username: document.getElementById('user').value, password: document.getElementById('pass').value });
+        fetch(scriptURL, { method: 'POST', body: body }).then(r=>r.json()).then(d => {
+            if(d.status === 'success') {
+                currentUser = d.username; currentRole = d.role;
+                document.getElementById('loginSec').classList.add('hidden');
+                
+                if(d.role === 'employee') {
+                    document.getElementById('empSec').classList.remove('hidden'); document.getElementById('empName').innerText = currentUser;
+                    initGPS();
+                } else {
+                    document.getElementById('hrSec').classList.remove('hidden'); 
+                    document.getElementById('roleTitle').innerText = (d.role === 'supervisor' ? "Supervisor" : "HR Admin");
+                    if(d.role === 'supervisor') {
+                        document.getElementById('tabBtnSettings').classList.add('hidden');
+                        document.getElementById('addUserDiv').classList.add('hidden'); 
+                    }
+                    loadDashboard();
+                }
+            } else { document.getElementById('loginMsg').innerText = d.message; }
+        });
+    }
+
+    // --- ส่วนของพนักงาน ---
+    function switchEmpTab(tab) {
+        document.getElementById('emp-tab-checkin').classList.add('hidden');
+        document.getElementById('emp-tab-history').classList.add('hidden');
+        document.getElementById('emp-tab-request').classList.add('hidden');
+        document.getElementById('btnEmpTabCheckin').classList.remove('active');
+        document.getElementById('btnEmpTabHistory').classList.remove('active');
+        document.getElementById('btnEmpTabRequest').classList.remove('active');
+
+        if(tab === 'checkin') { 
+            document.getElementById('emp-tab-checkin').classList.remove('hidden'); document.getElementById('btnEmpTabCheckin').classList.add('active'); 
+            if(!videoStream) startCamera();
+            setTimeout(() => { if(empMapObj) empMapObj.invalidateSize(); }, 200);
+        }
+        else if(tab === 'history') { document.getElementById('emp-tab-history').classList.remove('hidden'); document.getElementById('btnEmpTabHistory').classList.add('active'); loadMyLogs(); }
+        else { document.getElementById('emp-tab-request').classList.remove('hidden'); document.getElementById('btnEmpTabRequest').classList.add('active'); }
+    }
+
+    function toggleReqForm() {
+        let val = document.getElementById('reqType').value;
+        if(val === 'time') { document.getElementById('formTimeEdit').classList.remove('hidden'); document.getElementById('formLeave').classList.add('hidden'); }
+        else { document.getElementById('formTimeEdit').classList.add('hidden'); document.getElementById('formLeave').classList.remove('hidden'); }
+    }
+
+    function initGPS() {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_locations'}) }).then(r=>r.json()).then(d => {
+            allLocations = d.data;
+            refreshGPS(); startCamera(); 
+        });
+    }
+
+    function startCamera() {
+        const video = document.getElementById('videoElement');
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(function (stream) { videoStream = stream; video.srcObject = stream; })
+            .catch(err => { console.log("Camera error"); });
+        }
+    }
+
+    function captureImageWithWatermark() {
+        const video = document.getElementById('videoElement'); const canvas = document.getElementById('canvasElement'); const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
+        ctx.fillStyle = "white"; ctx.font = "18px Prompt";
+        let nowStr = new Date().toLocaleString('th-TH');
+        ctx.fillText("วันที่: " + nowStr, 10, canvas.height - 65);
+        ctx.fillText("พิกัด: " + myLat.toFixed(5) + ", " + myLon.toFixed(5), 10, canvas.height - 40);
+        ctx.fillText("สถานที่: " + targetLocName, 10, canvas.height - 15);
+        return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    }
+
+    function refreshGPS() {
+        document.getElementById('gpsStatus').innerHTML = '<span style="color:var(--warning);">กำลังอัปเดตตำแหน่ง...</span>';
+        document.getElementById('btnIn').classList.add('hidden'); 
+        document.getElementById('btnOut').classList.add('hidden');
+        document.getElementById('btnLeave').classList.add('hidden');
+        document.getElementById('cameraDiv').classList.add('hidden');
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(checkPosition, err => { document.getElementById('gpsStatus').innerHTML = '<span style="color:var(--danger);">ไม่สามารถเข้าถึง GPS ได้</span>'; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 10000});
+        }
+    }
+
+    function checkPosition(position) {
+        myLat = position.coords.latitude; myLon = position.coords.longitude;
+        let closestDist = Infinity, closestLoc = null, insideLoc = null;
+        allLocations.forEach(loc => {
+            let dist = calculateDistance(myLat, myLon, parseFloat(loc.lat), parseFloat(loc.lon));
+            if(dist < closestDist) { closestDist = dist; closestLoc = loc; }
+            if(dist <= parseFloat(loc.radius)) { insideLoc = loc; myDistance = dist; }
+        });
+
+        if(insideLoc) {
+            targetLocName = insideLoc.name; document.getElementById('empLocName').innerText = targetLocName;
+            document.getElementById('gpsStatus').innerHTML = `<span style="color:var(--success);">อยู่ในพื้นที่ ${targetLocName} (ห่าง ${Math.round(myDistance)} ม.)</span>`;
+            document.getElementById('btnIn').classList.remove('hidden'); 
+            document.getElementById('btnOut').classList.remove('hidden');
+        } else {
+            myDistance = closestDist; targetLocName = closestLoc ? closestLoc.name : '-';
+            document.getElementById('empLocName').innerText = targetLocName + ' (อ้างอิงจุดใกล้สุด)';
+            let rad = closestLoc ? closestLoc.radius : 0;
+            document.getElementById('gpsStatus').innerHTML = `<span style="color:var(--danger);">อยู่นอกพื้นที่เช็คอิน (ห่าง ${Math.round(myDistance)}ม.)</span>`;
+            document.getElementById('btnIn').classList.add('hidden'); 
+            document.getElementById('btnOut').classList.add('hidden');
+        }
+        
+        document.getElementById('cameraDiv').classList.remove('hidden');
+        document.getElementById('btnLeave').classList.remove('hidden');
+        renderEmpMap();
+    }
+
+    function renderEmpMap() {
+        document.getElementById('map-employee').classList.remove('hidden');
+        if(!empMapObj) { empMapObj = L.map('map-employee').setView([myLat, myLon], 15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(empMapObj); } 
+        else { empMapObj.setView([myLat, myLon], 15); }
+        empMapObj.eachLayer((layer) => { if (layer instanceof L.Marker || layer instanceof L.Circle) { empMapObj.removeLayer(layer); } });
+        
+        let mapBounds = [[myLat, myLon]];
+        allLocations.forEach(loc => {
+            L.circle([parseFloat(loc.lat), parseFloat(loc.lon)], { color: '#10b981', fillColor: '#10b981', fillOpacity: 0.2, radius: parseFloat(loc.radius) }).addTo(empMapObj).bindPopup(loc.name);
+            mapBounds.push([parseFloat(loc.lat), parseFloat(loc.lon)]);
+        });
+        
+        let empIcon = L.divIcon({ className: 'custom-div-icon', html: "<div style='background-color:var(--danger); width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);'></div>" });
+        L.marker([myLat, myLon], {icon: empIcon}).addTo(empMapObj).bindPopup("ตำแหน่งของคุณ").openPopup();
+        if(mapBounds.length > 1) { empMapObj.fitBounds(L.latLngBounds(mapBounds), {padding: [30, 30]}); }
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        var R = 6371e3; var rad = Math.PI / 180;
+        var dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; 
+    }
+
+    function checkIn(st) {
+        document.getElementById('empMsg').innerHTML = '<span style="color:var(--primary); font-weight:500;">กำลังอัปโหลดรูปภาพและบันทึกข้อมูล...</span>';
+        document.getElementById('btnIn').disabled = true; document.getElementById('btnOut').disabled = true; document.getElementById('btnLeave').disabled = true;
+
+        let base64Img = captureImageWithWatermark();
+        let body = new URLSearchParams({ action: 'checkin', username: currentUser, status: st, userLat: myLat, userLon: myLon, distance: Math.round(myDistance), locName: targetLocName, imageBase64: base64Img });
+
+        fetch(scriptURL, { method: 'POST', body: body }).then(r=>r.json()).then(d => {
+            if(d.status === 'success') { document.getElementById('empMsg').innerHTML = `<span style="color:var(--success); font-weight:600;">✅ ${d.message}</span>`; } 
+            else { document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ เกิดข้อผิดพลาดในการบันทึก</span>`; }
+            document.getElementById('btnIn').disabled = false; document.getElementById('btnOut').disabled = false; document.getElementById('btnLeave').disabled = false;
+        });
+    }
+
+    function submitRequest(type) {
+        document.getElementById('reqMsg').innerText = "กำลังส่งคำขอ...";
+        let fileInput = type === 'time' ? document.getElementById('timeFile') : document.getElementById('leaveFile');
+        let params = { action: 'submit_request', req_type: type, username: currentUser };
+        if(type === 'time') {
+            params.edit_type = document.getElementById('timeEditType').value; params.edit_date = document.getElementById('timeEditDate').value;
+            params.edit_time = document.getElementById('timeEditTime').value; params.reason = document.getElementById('timeReason').value;
+        } else {
+            params.leave_type = document.getElementById('leaveType').value; params.start_date = document.getElementById('leaveStart').value;
+            params.end_date = document.getElementById('leaveEnd').value; params.reason = document.getElementById('leaveReason').value;
+        }
+        if(fileInput.files.length > 0) {
+            let reader = new FileReader();
+            reader.onload = function(e) { params.imageBase64 = e.target.result.split(',')[1]; sendReqData(params); };
+            reader.readAsDataURL(fileInput.files[0]);
+        } else { sendReqData(params); }
+    }
+
+    function sendReqData(params) {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams(params) }).then(r=>r.json()).then(d => {
+            document.getElementById('reqMsg').innerText = "✅ ส่งคำขอสำเร็จ! กรุณารออนุมัติ";
+            setTimeout(() => { document.getElementById('reqMsg').innerText = ""; }, 4000);
+        });
+    }
+
+    function loadMyLogs() {
+        document.getElementById('searchMyLogs').value = ''; 
+        let tb = document.getElementById('tb-mylogs'); tb.innerHTML = '<tr><td colspan="4" class="text-center">กำลังโหลดข้อมูล...</td></tr>';
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_logs', username: currentUser}) }).then(r=>r.json()).then(d => {
+            tb.innerHTML = '';
+            d.data.forEach(i => { 
+                let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
+                let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="color:var(--primary); text-decoration:none;">🖼️ ดูรูป</a>` : '-';
+                tb.innerHTML += `<tr><td>${i[0]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
+            });
+        });
+    }
+
+    // --- ส่วนของ HR / Supervisor ---
+    function switchTab(tab) {
+        document.getElementById('tab-dashboard').classList.add('hidden'); document.getElementById('tab-logs').classList.add('hidden'); 
+        document.getElementById('tab-approvals').classList.add('hidden'); document.getElementById('tab-users').classList.add('hidden'); document.getElementById('tab-settings').classList.add('hidden');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active');
+        document.getElementById('tab-'+tab).classList.remove('hidden');
+        
+        if(tab === 'dashboard') loadDashboard(); if(tab === 'logs') loadLogs(); if(tab === 'approvals') loadRequests();
+        if(tab === 'users') loadUsers(); if(tab === 'settings') loadLocations();
+    }
+
+    function loadDashboard() {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_dashboard_data'}) }).then(r=>r.json()).then(d => {
+            document.getElementById('dashIn').innerText = d.stats.in; 
+            document.getElementById('dashOut').innerText = d.stats.out; 
+            document.getElementById('dashLeave').innerText = d.stats.leave;
+            document.getElementById('dashPending').innerText = d.stats.pending;
+            document.getElementById('btnExportExcel').href = `https://docs.google.com/spreadsheets/d/${d.sheetId}/export?format=xlsx`;
+
+            let tlDiv = document.getElementById('activityTimeline'); tlDiv.innerHTML = '';
+            if(d.activities.length === 0) { tlDiv.innerHTML = '<p style="color:var(--gray); font-size:14px;">ยังไม่มีความเคลื่อนไหววันนี้</p>'; }
+            d.activities.forEach(act => {
+                let color = act[2].includes('เข้า') ? 'var(--primary)' : (act[2].includes('ลา') ? 'var(--danger)' : 'var(--success)');
+                tlDiv.innerHTML += `<div class="timeline-item" style="border-left-color: ${color};"><b>${act[1]}</b> <span style="color:${color}; font-weight:500;">${act[2]}</span><br><span style="color:var(--gray); font-size:12px;">⏰ ${act[0].split(' ')[1]} | 📍 ${act[6]||'-'}</span></div>`;
+            });
+        });
+    }
+
+    function loadLogs() {
+        document.getElementById('searchHrLogs').value = ''; 
+        let tb = document.getElementById('tb-logs'); tb.innerHTML = '<tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>';
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) }).then(r=>r.json()).then(d => {
+            tb.innerHTML = '';
+            d.data.forEach(i => { 
+                let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
+                let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="color:var(--primary); text-decoration:none;">🖼️ ดูรูป</a>` : '-';
+                tb.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
+            });
+        });
+    }
+
+    function loadRequests() {
+        document.getElementById('tb-req-time').innerHTML = '<tr><td colspan="6" class="text-center">กำลังโหลด...</td></tr>'; document.getElementById('tb-req-leave').innerHTML = '<tr><td colspan="6" class="text-center">กำลังโหลด...</td></tr>';
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_requests'}) }).then(r=>r.json()).then(d => {
+            let tbTime = document.getElementById('tb-req-time'); tbTime.innerHTML = '';
+            d.time.forEach(i => {
+                let btn = `<button class="btn-green" onclick="approveReq('TimeRequests', '${i[0]}', 'Approved')" style="padding:6px 10px; font-size:12px;">อนุมัติ</button> <button class="btn-red" onclick="approveReq('TimeRequests', '${i[0]}', 'Rejected')" style="padding:6px 10px; font-size:12px;">ปฏิเสธ</button>`;
+                tbTime.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b><br><a href="${i[6]}" target="_blank" style="font-size:11px; color:var(--gray);">ดูหลักฐาน</a></td><td>${i[3]}</td><td>${i[4]}</td><td><span class="status-${i[7]}">${i[7]}</span></td><td><span class="status-${i[8]}">${i[8]}</span></td><td>${btn}</td></tr>`;
+            });
+            let tbLeave = document.getElementById('tb-req-leave'); tbLeave.innerHTML = '';
+            d.leave.forEach(i => {
+                let btn = `<button class="btn-green" onclick="approveReq('Leaves', '${i[0]}', 'Approved')" style="padding:6px 10px; font-size:12px;">อนุมัติ</button> <button class="btn-red" onclick="approveReq('Leaves', '${i[0]}', 'Rejected')" style="padding:6px 10px; font-size:12px;">ปฏิเสธ</button>`;
+                tbLeave.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b><br><a href="${i[8]}" target="_blank" style="font-size:11px; color:var(--gray);">ดูหลักฐาน</a></td><td>${i[3]}</td><td>${i[4]} ถึง ${i[5]}<br><span style="color:var(--gray); font-size:12px;">(${i[6]} วัน)</span></td><td><span class="status-${i[9]}">${i[9]}</span></td><td><span class="status-${i[10]}">${i[10]}</span></td><td>${btn}</td></tr>`;
+            });
+        });
+    }
+
+    function approveReq(sheetName, reqId, status) {
+        if(!confirm(`ยืนยันการให้สถานะ ${status} คำขอนี้?`)) return;
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'update_request', sheet_name: sheetName, req_id: reqId, new_status: status, role: currentRole}) }).then(() => loadRequests());
+    }
+
+    function loadUsers() {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_users'}) }).then(r=>r.json()).then(d => {
+            let tb = document.getElementById('tb-users'); tb.innerHTML = '';
+            d.data.forEach(i => { 
+                if(i[0]) {
+                    let actionBtns = currentRole === 'hr' ? `<button class="btn-yellow" onclick="openEditUser('${i[0]}', '${i[1]}', '${i[2]}')" style="padding:6px 12px; font-size:12px;">แก้ไข</button> <button class="btn-outline" onclick="deleteUser('${i[0]}')" style="padding:6px 12px; font-size:12px;">ลบ</button>` : '-';
+                    tb.innerHTML += `<tr><td style="font-weight:500;">${i[0]}</td><td style="color:var(--gray);">${i[1]}</td><td><span style="background:var(--light-gray); padding:4px 8px; border-radius:4px; font-size:12px;">${i[2]}</span></td><td>${actionBtns}</td></tr>`; 
+                }
+            });
+        });
+    }
+
+    function addUser() {
+        let u = document.getElementById('newU').value, p = document.getElementById('newP').value, r = document.getElementById('newR').value;
+        if(!u || !p) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        document.getElementById('newU').value = ''; document.getElementById('newP').value = '';
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_user', new_user: u, new_pass: p, new_role: r}) }).then(() => loadUsers());
+    }
+
+    function openEditUser(u, p, r) {
+        document.getElementById('editOldUserSpan').innerText = u; document.getElementById('editOldUser').value = u;
+        document.getElementById('editU').value = u; document.getElementById('editP').value = p; document.getElementById('editR').value = r;
+        document.getElementById('editUserDiv').classList.remove('hidden');
+        window.scrollTo(0, document.getElementById('editUserDiv').offsetTop);
+    }
+    function cancelEditUser() { document.getElementById('editUserDiv').classList.add('hidden'); }
+    function saveEditUser() {
+        let oldU = document.getElementById('editOldUser').value, newU = document.getElementById('editU').value, newP = document.getElementById('editP').value, newR = document.getElementById('editR').value;
+        if(!newU || !newP) return alert("กรุณากรอกข้อมูลให้ครบ");
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'edit_user', old_user: oldU, new_user: newU, new_pass: newP, new_role: newR}) }).then(() => { loadUsers(); cancelEditUser(); });
+    }
+    function deleteUser(u) {
+        if(!confirm("แน่ใจหรือไม่ที่จะลบพนักงาน: " + u + "?")) return;
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_user', del_user: u}) }).then(() => loadUsers());
+    }
+
+    function loadLocations() {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_locations'}) }).then(r=>r.json()).then(d => {
+            let tb = document.getElementById('tb-locations'); tb.innerHTML = '';
+            d.data.forEach(loc => {
+                tb.innerHTML += `<tr><td><b style="color:var(--dark);">${loc.name}</b></td><td>${loc.radius}</td>
+                    <td><button class="btn-yellow" onclick="openEditLoc('${loc.name}', '${loc.lat}', '${loc.lon}', '${loc.radius}')" style="padding:6px 12px; font-size:12px;">แก้ไข</button> <button class="btn-outline" onclick="deleteLocation('${loc.name}')" style="padding:6px 12px; font-size:12px;">ลบ</button></td></tr>`;
+            });
+            if(d.data.length > 0 && !document.getElementById('editOldLocName').value) { renderHrMap(parseFloat(d.data[0].lat), parseFloat(d.data[0].lon), 100); } 
+            else if (!hrMapObj) { renderHrMap(13.7563, 100.5018, 100); }
+        });
+    }
+
+    function searchLocation() {
+        let q = document.getElementById('searchPlaceInput').value; if(!q) return alert("กรุณาพิมพ์ชื่อสถานที่");
+        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q)).then(r => r.json()).then(data => {
+            if(data.length > 0) {
+                let sLat = parseFloat(data[0].lat); let sLon = parseFloat(data[0].lon);
+                renderHrMap(sLat, sLon, parseFloat(document.getElementById('setRad').value) || 100);
+                document.getElementById('setLat').value = sLat.toFixed(6); document.getElementById('setLon').value = sLon.toFixed(6);
+            } else { alert('ไม่พบข้อมูลสถานที่'); }
+        });
+    }
+
+    function saveLocation() {
+        let oldN = document.getElementById('editOldLocName').value;
+        let n = document.getElementById('setLocName').value, lt = document.getElementById('setLat').value, ln = document.getElementById('setLon').value, r = document.getElementById('setRad').value;
+        if(!n || !lt || !ln || !r) return alert("กรุณากรอกข้อมูลสถานที่ให้ครบถ้วน");
+        let actionData = oldN ? {action: 'edit_location', old_name: oldN, new_name: n, lat: lt, lon: ln, radius: r} : {action: 'add_location', name: n, lat: lt, lon: ln, radius: r};
+        document.getElementById('btnSaveLoc').innerText = "กำลังบันทึก...";
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams(actionData) }).then(() => { cancelEditLoc(); loadLocations(); });
+    }
+
+    function openEditLoc(name, lat, lon, radius) {
+        document.getElementById('locFormTitle').innerText = "✏️ แก้ไขสถานที่: " + name; document.getElementById('editOldLocName').value = name;
+        document.getElementById('setLocName').value = name; document.getElementById('setLat').value = lat; document.getElementById('setLon').value = lon; document.getElementById('setRad').value = radius;
+        document.getElementById('btnSaveLoc').innerText = "💾 บันทึกการแก้ไข"; document.getElementById('btnCancelLoc').classList.remove('hidden');
+        renderHrMap(parseFloat(lat), parseFloat(lon), parseFloat(radius)); window.scrollTo(0, document.getElementById('tab-settings').offsetTop);
+    }
+    function cancelEditLoc() {
+        document.getElementById('locFormTitle').innerText = "📍 ตั้งค่าจุดเช็คอินใหม่"; document.getElementById('editOldLocName').value = '';
+        document.getElementById('setLocName').value = ''; document.getElementById('setLat').value = ''; document.getElementById('setLon').value = ''; document.getElementById('setRad').value = '';
+        document.getElementById('btnSaveLoc').innerText = "💾 บันทึกสถานที่"; document.getElementById('btnCancelLoc').classList.add('hidden');
+    }
+    function deleteLocation(name) {
+        if(!confirm("แน่ใจหรือไม่ที่จะลบสถานที่: " + name + "?")) return;
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_location', name: name}) }).then(() => loadLocations());
+    }
+
+    function renderHrMap(lat, lon, rad) {
+        if(!hrMapObj) {
+            hrMapObj = L.map('map-hr').setView([lat, lon], 16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(hrMapObj);
+            hrMarker = L.marker([lat, lon], {draggable: true}).addTo(hrMapObj); hrCircle = L.circle([lat, lon], { color: '#10b981', fillColor: '#10b981', fillOpacity: 0.2, radius: rad }).addTo(hrMapObj);
+            hrMapObj.on('click', function(e) { hrMarker.setLatLng(e.latlng); hrCircle.setLatLng(e.latlng); document.getElementById('setLat').value = e.latlng.lat.toFixed(6); document.getElementById('setLon').value = e.latlng.lng.toFixed(6); });
+            hrMarker.on('dragend', function(e) { let pos = hrMarker.getLatLng(); hrCircle.setLatLng(pos); document.getElementById('setLat').value = pos.lat.toFixed(6); document.getElementById('setLon').value = pos.lng.toFixed(6); });
+        } else {
+            hrMapObj.setView([lat, lon], 16); hrMarker.setLatLng([lat, lon]); hrCircle.setLatLng([lat, lon]); hrCircle.setRadius(rad);
+        }
+        setTimeout(() => { hrMapObj.invalidateSize(); }, 200);
+    }
+    function updateHrCircleRadius() { let newRad = parseFloat(document.getElementById('setRad').value) || 0; if(hrCircle) hrCircle.setRadius(newRad); }
+
+    function logout() { if(videoStream) { videoStream.getTracks().forEach(track => track.stop()); } location.reload(); }
+</script>
+</body>
+</html>
