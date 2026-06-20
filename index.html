@@ -436,6 +436,32 @@
     let empMapObj = null, hrMapObj = null, hrMarker = null, hrCircle = null;
     let videoStream = null;
 
+    // --- เช็กสถานะล็อกอินอัตโนมัติ (เพิ่มใหม่) ---
+    window.onload = function() {
+        let savedUser = localStorage.getItem('work_checkin_user');
+        let savedRole = localStorage.getItem('work_checkin_role');
+        
+        if(savedUser && savedRole) {
+            currentUser = savedUser;
+            currentRole = savedRole;
+            document.getElementById('loginSec').classList.add('hidden');
+            
+            if(currentRole === 'employee') {
+                document.getElementById('empSec').classList.remove('hidden'); 
+                document.getElementById('empName').innerText = currentUser;
+                initGPS();
+            } else {
+                document.getElementById('hrSec').classList.remove('hidden'); 
+                document.getElementById('roleTitle').innerText = (currentRole === 'supervisor' ? "Supervisor" : "HR Admin");
+                if(currentRole === 'supervisor') {
+                    document.getElementById('tabBtnSettings').classList.add('hidden');
+                    document.getElementById('addUserDiv').classList.add('hidden'); 
+                }
+                loadDashboard();
+            }
+        }
+    };
+
     function filterTable(inputId, tbodyId) {
         let input = document.getElementById(inputId).value.toLowerCase();
         let tr = document.getElementById(tbodyId).getElementsByTagName("tr");
@@ -453,6 +479,11 @@
         fetch(scriptURL, { method: 'POST', body: body }).then(r=>r.json()).then(d => {
             if(d.status === 'success') {
                 currentUser = d.username; currentRole = d.role;
+                
+                // --- บันทึกสถานะล็อกอินลง localStorage (เพิ่มใหม่) ---
+                localStorage.setItem('work_checkin_user', currentUser);
+                localStorage.setItem('work_checkin_role', currentRole);
+
                 document.getElementById('loginSec').classList.add('hidden');
                 
                 if(d.role === 'employee') {
@@ -469,6 +500,14 @@
                 }
             } else { document.getElementById('loginMsg').innerText = d.message; }
         });
+    }
+
+    // --- ออกจากระบบ (ลบ localStorage) ---
+    function logout() { 
+        if(videoStream) { videoStream.getTracks().forEach(track => track.stop()); } 
+        localStorage.removeItem('work_checkin_user');
+        localStorage.removeItem('work_checkin_role');
+        location.reload(); 
     }
 
     // --- ส่วนของพนักงาน ---
@@ -799,7 +838,6 @@
     }
     function updateHrCircleRadius() { let newRad = parseFloat(document.getElementById('setRad').value) || 0; if(hrCircle) hrCircle.setRadius(newRad); }
 
-    function logout() { if(videoStream) { videoStream.getTracks().forEach(track => track.stop()); } location.reload(); }
 </script>
 </body>
 </html>
