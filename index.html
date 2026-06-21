@@ -54,7 +54,7 @@
         .card { background: white; padding: 25px 20px; border-radius: 12px; text-align: center; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .card h3 { margin: 0; font-size: 36px; color: var(--primary); } .card p { margin: 10px 0 0 0; color: var(--gray); font-size: 14px; font-weight: 500; }
         .timeline-item { border-left: 4px solid var(--primary); padding: 12px 15px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 8px 8px 0; font-size: 14px;}
-        .flex-gap { display: flex; gap: 10px; } .text-center { text-align: center; } .mt-3 { margin-top: 1rem; }
+        .flex-gap { display: flex; gap: 10px; align-items: center;} .text-center { text-align: center; } .mt-3 { margin-top: 1rem; }
         
         /* สไตล์ปฏิทิน */
         .cal-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--primary); color: white; padding: 10px 15px; border-radius: 8px; font-weight: 600; font-size: 18px;}
@@ -122,7 +122,7 @@
                 <h4 style="margin-top:0;">สัญลักษณ์:</h4>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:12px;">
                     <span class="cal-tag bg-green" style="padding:4px 8px;">เข้างานปกติ</span>
-                    <span class="cal-tag bg-orange" style="padding:4px 8px;">เข้าสาย (>08:30)</span>
+                    <span class="cal-tag bg-orange legend-late" style="padding:4px 8px;">เข้าสาย</span>
                     <span class="cal-tag bg-red" style="padding:4px 8px;">ขาดงาน</span>
                     <span class="cal-tag bg-blue" style="padding:4px 8px;">ลา</span>
                     <span class="cal-tag bg-purple" style="padding:4px 8px;">วันหยุดบริษัท</span>
@@ -153,7 +153,6 @@
             </div>
             <p id="reqMsg" class="text-center mt-3" style="color:var(--success); font-weight:600;"></p>
 
-            <!-- ตารางแสดงสถานะคำขอ (เพิ่มใหม่) -->
             <hr style="margin:30px 0; border:1px solid #e5e7eb;">
             <h3 style="margin-top:0; color:var(--dark);">📋 สถานะคำขอของฉัน</h3>
             <button onclick="loadMyRequests()" class="btn-grey" style="width: auto; margin-bottom: 10px;">🔄 รีเฟรชสถานะ</button>
@@ -208,6 +207,16 @@
                 <select id="hrCalUserSelect" onchange="renderHrCalendar()" style="margin:0;"></select>
             </div>
             <div id="hrCalendarContainer"></div>
+            <div class="mt-3" style="background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #e5e7eb;">
+                <h4 style="margin-top:0;">สัญลักษณ์:</h4>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:12px;">
+                    <span class="cal-tag bg-green" style="padding:4px 8px;">เข้างานปกติ</span>
+                    <span class="cal-tag bg-orange legend-late" style="padding:4px 8px;">เข้าสาย</span>
+                    <span class="cal-tag bg-red" style="padding:4px 8px;">ขาดงาน</span>
+                    <span class="cal-tag bg-blue" style="padding:4px 8px;">ลา</span>
+                    <span class="cal-tag bg-purple" style="padding:4px 8px;">วันหยุดบริษัท</span>
+                </div>
+            </div>
         </div>
 
         <div id="tab-approvals" class="hidden">
@@ -219,11 +228,29 @@
         </div>
 
         <div id="tab-users" class="hidden">
-            <div id="addUserDiv" class="edit-box"><h3 style="margin-top:0;">➕ เพิ่มพนักงาน</h3><div class="flex-gap"><input type="text" id="newU" placeholder="Username"><input type="password" id="newP" placeholder="Password"></div><select id="newR"><option value="employee">พนักงาน</option><option value="hr">แอดมิน</option></select><button class="btn-primary" onclick="addUser()">บันทึก</button></div>
+            <div id="addUserDiv" class="edit-box"><h3 style="margin-top:0;">➕ เพิ่มพนักงาน</h3><div class="flex-gap"><input type="text" id="newU" placeholder="Username"><input type="password" id="newP" placeholder="Password"></div><select id="newR"><option value="employee">พนักงาน</option><option value="supervisor">หัวหน้างาน</option><option value="hr">แอดมิน</option></select><button class="btn-primary" onclick="addUser()">บันทึก</button></div>
+            <div id="editUserDiv" class="edit-box hidden" style="background:#fffbeb; border-color:#fef08a;">
+                <h3 style="margin-top:0; color:#d97706;">✏️ แก้ไขข้อมูล: <span id="editOldUserSpan"></span></h3>
+                <input type="hidden" id="editOldUser">
+                <div class="flex-gap"><input type="text" id="editU" placeholder="ชื่อผู้ใช้ใหม่"><input type="text" id="editP" placeholder="รหัสผ่านใหม่"></div>
+                <select id="editR"><option value="employee">พนักงาน</option><option value="supervisor">หัวหน้างาน</option><option value="hr">แอดมิน</option></select>
+                <div class="flex-gap"><button class="btn-yellow" onclick="saveEditUser()" style="flex:1;">💾 บันทึก</button><button class="btn-grey" onclick="cancelEditUser()" style="flex:1;">ยกเลิก</button></div>
+            </div>
             <div class="table-responsive mt-3"><table><thead><tr><th>ชื่อผู้ใช้งาน</th><th>รหัสผ่าน</th><th>ระดับสิทธิ์</th><th>จัดการ</th></tr></thead><tbody id="tb-users"></tbody></table></div>
         </div>
 
         <div id="tab-settings" class="hidden">
+            <h3 style="margin-top:0;">⏰ ตั้งค่าเวลาเข้า-ออกงาน (บริษัท)</h3>
+            <div class="edit-box" style="margin-top:0;">
+                <div class="flex-gap">
+                    <div style="flex:1;"><label style="font-size:13px; font-weight:600;">เวลาเข้างาน:</label><input type="time" id="confStart"></div>
+                    <div style="flex:1;"><label style="font-size:13px; font-weight:600;">เวลาเลิกงาน:</label><input type="time" id="confEnd"></div>
+                </div>
+                <button class="btn-primary" onclick="saveConfig()" style="width: 100%; margin-top:10px;">💾 บันทึกเวลาทำงาน</button>
+            </div>
+            
+            <hr style="margin:30px 0; border:1px solid #e5e7eb;">
+            
             <h3 style="margin-top:0;">🏖️ จัดการวันหยุดประจำปี (บริษัท)</h3>
             <div class="edit-box" style="margin-top:0;">
                 <div class="flex-gap">
@@ -235,7 +262,9 @@
                     <table><thead><tr><th>วันที่</th><th>ชื่อวันหยุด</th><th>ลบ</th></tr></thead><tbody id="tb-holidays"></tbody></table>
                 </div>
             </div>
+            
             <hr style="margin:30px 0; border:1px solid #e5e7eb;">
+            
             <h3 style="margin-top:0;">📍 ตั้งค่าจุดเช็คอิน</h3>
             <div class="edit-box" style="margin-top:0;">
                 <div id="map-hr"></div>
@@ -255,6 +284,7 @@
     
     let currentUser = '', currentRole = '';
     let allLocations = [], allHolidays = [];
+    let workConfig = { start: "08:30", end: "17:30" };
     let myLat = 0, myLon = 0, myDistance = 0, targetLocName = '';
     let empMapObj = null, hrMapObj = null, hrMarker = null, hrCircle = null, videoStream = null;
     let currentLogs = [];
@@ -267,7 +297,7 @@
         if(savedUser && savedRole) {
             currentUser = savedUser; currentRole = savedRole;
             document.getElementById('loginSec').classList.add('hidden');
-            fetchHolidays(() => {
+            loadConfigAndHolidays(() => {
                 if(currentRole === 'employee') {
                     document.getElementById('empSec').classList.remove('hidden'); document.getElementById('empName').innerText = currentUser;
                     initGPS();
@@ -287,7 +317,7 @@
                 currentUser = d.username; currentRole = d.role;
                 localStorage.setItem('work_checkin_user', currentUser); localStorage.setItem('work_checkin_role', currentRole);
                 document.getElementById('loginSec').classList.add('hidden');
-                fetchHolidays(() => {
+                loadConfigAndHolidays(() => {
                     if(d.role === 'employee') {
                         document.getElementById('empSec').classList.remove('hidden'); document.getElementById('empName').innerText = currentUser;
                         initGPS();
@@ -302,10 +332,26 @@
 
     function logout() { if(videoStream) { videoStream.getTracks().forEach(t => t.stop()); } localStorage.removeItem('work_checkin_user'); localStorage.removeItem('work_checkin_role'); location.reload(); }
 
-    function fetchHolidays(callback) {
-        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_holidays'}) }).then(r=>r.json()).then(d => {
-            allHolidays = d.data.map(h => ({date: h[0], name: h[1]}));
-            if(callback) callback();
+    function loadConfigAndHolidays(callback) {
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_config'}) }).then(r=>r.json()).then(d => {
+            if(d.data) {
+                workConfig = d.data;
+                document.getElementById('confStart').value = workConfig.start;
+                document.getElementById('confEnd').value = workConfig.end;
+                document.querySelectorAll('.legend-late').forEach(el => el.innerText = `เข้าสาย (>${workConfig.start})`);
+            }
+            fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_holidays'}) }).then(r2=>r2.json()).then(d2 => {
+                allHolidays = d2.data.map(h => ({date: h[0], name: h[1]}));
+                if(callback) callback();
+            });
+        });
+    }
+
+    function saveConfig() {
+        let s = document.getElementById('confStart').value; let e = document.getElementById('confEnd').value;
+        if(!s || !e) return alert("กรุณาระบุเวลาให้ครบ");
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'save_config', start: s, end: e}) }).then(() => {
+            alert("บันทึกเวลาบริษัทสำเร็จ"); loadConfigAndHolidays();
         });
     }
 
@@ -314,10 +360,7 @@
         document.getElementById('btnEmpTabCheckin').classList.remove('active'); document.getElementById('btnEmpTabHistory').classList.remove('active'); document.getElementById('btnEmpTabRequest').classList.remove('active');
         if(tab === 'checkin') { document.getElementById('emp-tab-checkin').classList.remove('hidden'); document.getElementById('btnEmpTabCheckin').classList.add('active'); if(!videoStream) startCamera(); setTimeout(() => { if(empMapObj) empMapObj.invalidateSize(); }, 200); }
         else if(tab === 'history') { document.getElementById('emp-tab-history').classList.remove('hidden'); document.getElementById('btnEmpTabHistory').classList.add('active'); loadMyLogs(); }
-        else { 
-            document.getElementById('emp-tab-request').classList.remove('hidden'); document.getElementById('btnEmpTabRequest').classList.add('active'); 
-            loadMyRequests(); // โหลดสถานะคำขออัตโนมัติ
-        }
+        else { document.getElementById('emp-tab-request').classList.remove('hidden'); document.getElementById('btnEmpTabRequest').classList.add('active'); loadMyRequests(); }
     }
 
     function toggleReqForm() { document.getElementById('reqType').value === 'time' ? (document.getElementById('formTimeEdit').classList.remove('hidden'), document.getElementById('formLeave').classList.add('hidden')) : (document.getElementById('formTimeEdit').classList.add('hidden'), document.getElementById('formLeave').classList.remove('hidden')); }
@@ -374,7 +417,6 @@
         });
     }
 
-    // === ระบบส่งคำขอ และ ดึงสถานะของฉัน (ใหม่) ===
     function submitRequest(type) {
         document.getElementById('reqMsg').innerText = "กำลังส่ง..."; let fileInput = type === 'time' ? document.getElementById('timeFile') : document.getElementById('leaveFile');
         let params = { action: 'submit_request', req_type: type, username: currentUser };
@@ -386,44 +428,27 @@
     function sendReqData(params) { 
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams(params) }).then(r=>r.json()).then(d => { 
             document.getElementById('reqMsg').innerText = "✅ ส่งคำขอสำเร็จ!"; 
-            loadMyRequests(); // โหลดสถานะตารางใหม่ทันที
-            setTimeout(() => { document.getElementById('reqMsg').innerText = ""; }, 4000); 
+            loadMyRequests(); setTimeout(() => { document.getElementById('reqMsg').innerText = ""; }, 4000); 
         }); 
     }
 
     function loadMyRequests() {
         let tb = document.getElementById('tb-my-reqs'); 
         tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">กำลังโหลดสถานะ...</td></tr>';
-        
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_requests', username: currentUser}) }).then(r=>r.json()).then(d => {
             tb.innerHTML = '';
-            if(d.time.length === 0 && d.leave.length === 0) {
-                tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">ไม่มีประวัติการส่งคำขอ</td></tr>'; return;
-            }
-            
+            if(d.time.length === 0 && d.leave.length === 0) { tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">ไม่มีประวัติการส่งคำขอ</td></tr>'; return; }
             d.time.forEach(i => {
                 let statusText = i[8] === 'Approved' ? 'อนุมัติแล้ว' : (i[8] === 'Rejected' ? 'ไม่อนุมัติ' : 'รอตรวจสอบ');
-                tb.innerHTML += `<tr>
-                    <td><b>แก้ไขเวลา</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td>
-                    <td style="font-size:13px;">${i[4]}</td>
-                    <td style="font-size:12px;">${i[1].split(' ')[0]}</td>
-                    <td><span class="status-${i[8]}">${statusText}</span></td>
-                </tr>`;
+                tb.innerHTML += `<tr><td><b>แก้ไขเวลา</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td><td style="font-size:13px;">${i[4]}</td><td style="font-size:12px;">${i[1].split(' ')[0]}</td><td><span class="status-${i[8]}">${statusText}</span></td></tr>`;
             });
-            
             d.leave.forEach(i => {
                 let statusText = i[10] === 'Approved' ? 'อนุมัติแล้ว' : (i[10] === 'Rejected' ? 'ไม่อนุมัติ' : 'รอตรวจสอบ');
-                tb.innerHTML += `<tr>
-                    <td><b>ลางาน</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td>
-                    <td style="font-size:13px;">${i[4]} ถึง ${i[5]}</td>
-                    <td style="font-size:12px;">${i[1].split(' ')[0]}</td>
-                    <td><span class="status-${i[10]}">${statusText}</span></td>
-                </tr>`;
+                tb.innerHTML += `<tr><td><b>ลางาน</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td><td style="font-size:13px;">${i[4]} ถึง ${i[5]}</td><td style="font-size:12px;">${i[1].split(' ')[0]}</td><td><span class="status-${i[10]}">${statusText}</span></td></tr>`;
             });
         });
     }
 
-    // ================= ระบบปฏิทินประวัติ =================
     function loadMyLogs() {
         document.getElementById('myCalendarContainer').innerHTML = '<p class="text-center">กำลังโหลดปฏิทิน...</p>';
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_logs', username: currentUser}) }).then(r=>r.json()).then(d => {
@@ -440,31 +465,35 @@
         let container = document.getElementById(containerId);
         let month = dateObj.getMonth(); let year = dateObj.getFullYear();
         let monthNames = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-        
         let html = `<div class="cal-header-bar"><button onclick="changeMonth(-1, '${containerId}', ${isHrView})">◀</button><span>${monthNames[month]} ${year + 543}</span><button onclick="changeMonth(1, '${containerId}', ${isHrView})">▶</button></div><div class="calendar">`;
         ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].forEach(d => html += `<div class="cal-head">${d}</div>`);
-        
         let firstDay = new Date(year, month, 1).getDay(); let daysInMonth = new Date(year, month + 1, 0).getDate();
         for(let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
         let today = new Date(); today.setHours(0,0,0,0);
-        
         for(let d=1; d<=daysInMonth; d++) {
             let loopDate = new Date(year, month, d); let dateStr = `${String(d).padStart(2,'0')}/${String(month+1).padStart(2,'0')}/${year}`;
             let dayLogs = logs.filter(l => l[0] && l[0].split(' ')[0] === dateStr);
-            let hasCheckIn = false, isLate = false, hasLeave = false;
-            let isHoliday = allHolidays.find(h => h.date === dateStr);
-            let isWeekend = (loopDate.getDay() === 0 || loopDate.getDay() === 6);
-
-            dayLogs.forEach(l => { if(l[2].includes('ลา')) hasLeave = true; if(l[2].includes('เข้างาน')) { hasCheckIn = true; if(l[0].split(' ')[1] > "08:30:00") isLate = true; } });
-
+            let hasCheckIn = false, isLate = false, hasLeave = false; 
+            let isHoliday = allHolidays.find(h => h.date === dateStr); 
+            // แก้ไข: ให้วันหยุดสุดสัปดาห์มีแค่วันอาทิตย์ (0) เท่านั้น
+            let isWeekend = (loopDate.getDay() === 0);
+            
+            dayLogs.forEach(l => { 
+                if(l[2].includes('ลา')) hasLeave = true; 
+                if(l[2].includes('เข้างาน')) { 
+                    hasCheckIn = true; 
+                    // ตรวจสอบสายด้วยเวลาบริษัท
+                    if(l[0].split(' ')[1] > workConfig.start + ":00") isLate = true; 
+                } 
+            });
             let tags = '';
             if(isHoliday) tags += `<div class="cal-tag bg-purple">${isHoliday.name}</div>`;
-            if(isWeekend && !hasCheckIn && !hasLeave) tags += `<div class="cal-tag bg-gray">วันหยุด</div>`;
-
+            if(isWeekend && !hasCheckIn && !hasLeave) tags += `<div class="cal-tag bg-gray">หยุดประจำสัปดาห์</div>`;
+            
             if(hasLeave) { tags += `<div class="cal-tag bg-blue">ลางาน</div>`; } 
             else if(hasCheckIn) { if(isLate) tags += `<div class="cal-tag bg-orange">สาย</div>`; else tags += `<div class="cal-tag bg-green">ปกติ</div>`; } 
             else if(!isWeekend && !isHoliday && loopDate < today) { tags += `<div class="cal-tag bg-red">ขาดงาน</div>`; }
-
+            
             html += `<div class="cal-day"><div class="cal-date">${d}</div>${tags}</div>`;
         }
         html += `</div>`; container.innerHTML = html;
@@ -499,27 +528,61 @@
     function renderHrCalendar() { let user = document.getElementById('hrCalUserSelect').value; if(!user) { document.getElementById('hrCalendarContainer').innerHTML = '<p class="text-center" style="color:var(--gray); padding:20px;">โปรดเลือกพนักงานเพื่อดูปฏิทินประวัติ</p>'; return; } let userLogs = hrAllLogs.filter(l => l[1] === user); renderCalendar('hrCalendarContainer', userLogs, hrCalDate, true); }
 
     function loadRequests() {
+        document.getElementById('tb-req-time').innerHTML = '<tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>'; document.getElementById('tb-req-leave').innerHTML = '<tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>';
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_requests'}) }).then(r=>r.json()).then(d => {
             let tbTime = document.getElementById('tb-req-time'); tbTime.innerHTML = '';
-            d.time.forEach(i => { let btn = `<button class="btn-green" onclick="approveReq('TimeRequests', '${i[0]}', 'Approved')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button> <button class="btn-red" onclick="approveReq('TimeRequests', '${i[0]}', 'Rejected')" style="padding:4px 8px; font-size:11px;">ปฏิเสธ</button>`; tbTime.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b></td><td>${i[3]}<br><span style="font-size:11px; color:var(--gray)">${i[4]}</span></td><td>${i[1].split(' ')[0]}</td><td>${btn}</td></tr>`; });
+            d.time.forEach(i => {
+                let status = currentRole === 'hr' ? i[8] : i[7]; let btn = '';
+                if(status === 'Pending') btn = `<button class="btn-green" onclick="approveReq('TimeRequests', '${i[0]}', 'Approved')" style="padding:6px 10px; font-size:12px; margin-right:5px;">อนุมัติ</button><button class="btn-red" onclick="approveReq('TimeRequests', '${i[0]}', 'Rejected')" style="padding:6px 10px; font-size:12px;">ปฏิเสธ</button>`;
+                else btn = `<span class="status-${status}">${status === 'Approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}</span>`;
+                tbTime.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b><br><span style="font-size:11px; color:var(--gray)">${i[1].split(' ')[0]}</span></td><td>${i[3]}</td><td>${i[4]}</td><td>${btn}</td></tr>`;
+            });
             let tbLeave = document.getElementById('tb-req-leave'); tbLeave.innerHTML = '';
-            d.leave.forEach(i => { let btn = `<button class="btn-green" onclick="approveReq('Leaves', '${i[0]}', 'Approved')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button> <button class="btn-red" onclick="approveReq('Leaves', '${i[0]}', 'Rejected')" style="padding:4px 8px; font-size:11px;">ปฏิเสธ</button>`; tbLeave.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b></td><td>${i[3]}<br><span style="font-size:11px; color:var(--gray)">${i[4]} ถึง ${i[5]}</span></td><td>${i[1].split(' ')[0]}</td><td>${btn}</td></tr>`; });
+            d.leave.forEach(i => {
+                let status = currentRole === 'hr' ? i[10] : i[9]; let btn = '';
+                if(status === 'Pending') btn = `<button class="btn-green" onclick="approveReq('Leaves', '${i[0]}', 'Approved')" style="padding:6px 10px; font-size:12px; margin-right:5px;">อนุมัติ</button><button class="btn-red" onclick="approveReq('Leaves', '${i[0]}', 'Rejected')" style="padding:6px 10px; font-size:12px;">ปฏิเสธ</button>`;
+                else btn = `<span class="status-${status}">${status === 'Approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}</span>`;
+                tbLeave.innerHTML += `<tr><td><b style="color:var(--primary);">${i[2]}</b><br><span style="font-size:11px; color:var(--gray)">${i[1].split(' ')[0]}</span></td><td>${i[3]}</td><td>${i[4]} ถึง ${i[5]}<br><span style="font-size:11px; color:var(--gray)">(${i[6]} วัน)</span></td><td>${btn}</td></tr>`;
+            });
         });
     }
 
     function approveReq(s, id, st) { if(!confirm(`ยืนยันการให้สถานะ ${st}?`)) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'update_request', sheet_name: s, req_id: id, new_status: st, role: currentRole}) }).then(() => loadRequests()); }
-    function loadUsers() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_users'}) }).then(r=>r.json()).then(d => { let tb = document.getElementById('tb-users'); tb.innerHTML = ''; d.data.forEach(i => { if(i[0]) tb.innerHTML += `<tr><td>${i[0]}</td><td>***</td><td>${i[2]}</td><td><button class="btn-outline" onclick="deleteUser('${i[0]}')" style="padding:4px 8px; font-size:11px;">ลบ</button></td></tr>`; }); }); }
-    function addUser() { let u = document.getElementById('newU').value, p = document.getElementById('newP').value, r = document.getElementById('newR').value; if(!u || !p) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_user', new_user: u, new_pass: p, new_role: r}) }).then(() => loadUsers()); }
-    function deleteUser(u) { if(confirm("ลบ " + u + "?")) fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_user', del_user: u}) }).then(() => loadUsers()); }
+    
+    function loadUsers() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_users'}) }).then(r=>r.json()).then(d => { let tb = document.getElementById('tb-users'); tb.innerHTML = ''; d.data.forEach(i => { if(i[0]) { let actionBtns = currentRole === 'hr' ? `<button class="btn-yellow" onclick="openEditUser('${i[0]}', '${i[1]}', '${i[2]}')" style="padding:6px 12px; font-size:12px; margin-right:5px;">แก้ไข</button><button class="btn-outline" onclick="deleteUser('${i[0]}')" style="padding:6px 12px; font-size:12px;">ลบ</button>` : '-'; tb.innerHTML += `<tr><td style="font-weight:500;">${i[0]}</td><td style="color:var(--gray);">***</td><td><span style="background:var(--light-gray); padding:4px 8px; border-radius:4px; font-size:12px;">${i[2]}</span></td><td>${actionBtns}</td></tr>`; }}); }); }
+    function addUser() { let u = document.getElementById('newU').value, p = document.getElementById('newP').value, r = document.getElementById('newR').value; if(!u || !p) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_user', new_user: u, new_pass: p, new_role: r}) }).then(() => { document.getElementById('newU').value=''; document.getElementById('newP').value=''; loadUsers(); }); }
+    function openEditUser(u, p, r) { document.getElementById('editOldUserSpan').innerText = u; document.getElementById('editOldUser').value = u; document.getElementById('editU').value = u; document.getElementById('editP').value = p; document.getElementById('editR').value = r; document.getElementById('editUserDiv').classList.remove('hidden'); window.scrollTo(0, document.getElementById('editUserDiv').offsetTop); }
+    function cancelEditUser() { document.getElementById('editUserDiv').classList.add('hidden'); }
+    function saveEditUser() { let oldU = document.getElementById('editOldUser').value, newU = document.getElementById('editU').value, newP = document.getElementById('editP').value, newR = document.getElementById('editR').value; if(!newU || !newP) return alert("กรุณากรอกข้อมูลให้ครบ"); fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'edit_user', old_user: oldU, new_user: newU, new_pass: newP, new_role: newR}) }).then(() => { loadUsers(); cancelEditUser(); }); }
+    function deleteUser(u) { if(confirm("ลบพนักงาน: " + u + " ใช่หรือไม่?")) fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_user', del_user: u}) }).then(() => loadUsers()); }
 
     function loadHolidaysUI() { let tb = document.getElementById('tb-holidays'); tb.innerHTML = ''; allHolidays.forEach(h => { tb.innerHTML += `<tr><td>${h.date}</td><td><b style="color:var(--primary);">${h.name}</b></td><td><button class="btn-outline" onclick="deleteHoliday('${h.date}')" style="padding:4px 8px; font-size:11px;">ลบ</button></td></tr>`; }); }
-    function addHoliday() { let d = document.getElementById('holDate').value; let n = document.getElementById('holName').value; if(!d || !n) return; let ds = d.split('-'); let thDate = `${ds[2]}/${ds[1]}/${ds[0]}`; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_holiday', date: thDate, name: n}) }).then(() => { document.getElementById('holDate').value = ''; document.getElementById('holName').value = ''; fetchHolidays(() => loadHolidaysUI()); }); }
-    function deleteHoliday(dateStr) { if(!confirm("ลบวันหยุดนี้?")) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_holiday', date: dateStr}) }).then(() => { fetchHolidays(() => loadHolidaysUI()); }); }
+    
+    // แก้บั๊กส่งค่าวันที่ของวันหยุด
+    function addHoliday() { 
+        let d = document.getElementById('holDate').value; 
+        let n = document.getElementById('holName').value; 
+        if(!d || !n) return alert('โปรดกรอกข้อมูลให้ครบถ้วน'); 
+        let ds = d.split('-'); 
+        let thDate = ds[2] + '/' + ds[1] + '/' + ds[0]; 
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_holiday', date: thDate, name: n}) })
+        .then(r=>r.json()).then(res => { 
+            if(res.status === 'success') {
+                document.getElementById('holDate').value = ''; 
+                document.getElementById('holName').value = ''; 
+                loadConfigAndHolidays(() => loadHolidaysUI()); 
+            }
+        }); 
+    }
+    
+    function deleteHoliday(dateStr) { if(!confirm("ลบวันหยุดนี้?")) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_holiday', date: dateStr}) }).then(() => { loadConfigAndHolidays(() => loadHolidaysUI()); }); }
 
-    function loadLocations() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_locations'}) }).then(r=>r.json()).then(d => { let tb = document.getElementById('tb-locations'); tb.innerHTML = ''; d.data.forEach(loc => { tb.innerHTML += `<tr><td><b>${loc.name}</b></td><td>${loc.radius}</td><td><button class="btn-yellow" onclick="openEditLoc('${loc.name}', '${loc.lat}', '${loc.lon}', '${loc.radius}')" style="padding:4px 8px; font-size:11px;">แก้ไข</button> <button class="btn-outline" onclick="deleteLocation('${loc.name}')" style="padding:4px 8px; font-size:11px;">ลบ</button></td></tr>`; }); if(d.data.length > 0 && !hrMapObj) renderHrMap(parseFloat(d.data[0].lat), parseFloat(d.data[0].lon), 100); }); }
+    function loadLocations() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_locations'}) }).then(r=>r.json()).then(d => { let tb = document.getElementById('tb-locations'); tb.innerHTML = ''; d.data.forEach(loc => { tb.innerHTML += `<tr><td><b>${loc.name}</b></td><td>${loc.radius}</td><td><button class="btn-yellow" onclick="openEditLoc('${loc.name}', '${loc.lat}', '${loc.lon}', '${loc.radius}')" style="padding:6px 12px; font-size:12px;">แก้ไข</button> <button class="btn-outline" onclick="deleteLocation('${loc.name}')" style="padding:6px 12px; font-size:12px;">ลบ</button></td></tr>`; }); if(d.data.length > 0 && !hrMapObj) renderHrMap(parseFloat(d.data[0].lat), parseFloat(d.data[0].lon), 100); }); }
     function searchLocation() { let q = document.getElementById('searchPlaceInput').value; if(!q) return; fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q)).then(r => r.json()).then(data => { if(data.length > 0) { renderHrMap(parseFloat(data[0].lat), parseFloat(data[0].lon), parseFloat(document.getElementById('setRad').value) || 100); document.getElementById('setLat').value = data[0].lat; document.getElementById('setLon').value = data[0].lon; } }); }
-    function saveLocation() { let n = document.getElementById('setLocName').value, lt = document.getElementById('setLat').value, ln = document.getElementById('setLon').value, r = document.getElementById('setRad').value; if(!n || !lt || !ln || !r) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_location', name: n, lat: lt, lon: ln, radius: r}) }).then(() => loadLocations()); }
-    function deleteLocation(name) { if(confirm("ลบสถานที่?")) fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_location', name: name}) }).then(() => loadLocations()); }
+    function saveLocation() { let n = document.getElementById('setLocName').value, lt = document.getElementById('setLat').value, ln = document.getElementById('setLon').value, r = document.getElementById('setRad').value; if(!n || !lt || !ln || !r) return; fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'add_location', name: n, lat: lt, lon: ln, radius: r}) }).then(() => { cancelEditLoc(); loadLocations(); }); }
+    function openEditLoc(name, lat, lon, radius) { document.getElementById('locFormTitle').innerText = "✏️ แก้ไขสถานที่: " + name; document.getElementById('editOldLocName').value = name; document.getElementById('setLocName').value = name; document.getElementById('setLat').value = lat; document.getElementById('setLon').value = lon; document.getElementById('setRad').value = radius; document.getElementById('btnSaveLoc').innerText = "💾 บันทึกการแก้ไข"; document.getElementById('btnCancelLoc').classList.remove('hidden'); renderHrMap(parseFloat(lat), parseFloat(lon), parseFloat(radius)); window.scrollTo(0, document.getElementById('tab-settings').offsetTop); }
+    function cancelEditLoc() { document.getElementById('locFormTitle').innerText = "📍 ตั้งค่าจุดเช็คอินใหม่"; document.getElementById('editOldLocName').value = ''; document.getElementById('setLocName').value = ''; document.getElementById('setLat').value = ''; document.getElementById('setLon').value = ''; document.getElementById('setRad').value = ''; document.getElementById('btnSaveLoc').innerText = "💾 บันทึกสถานที่"; document.getElementById('btnCancelLoc').classList.add('hidden'); }
+    function deleteLocation(name) { if(!confirm("ลบสถานที่?")) fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'delete_location', name: name}) }).then(() => loadLocations()); }
     function renderHrMap(lat, lon, rad) { if(!hrMapObj) { hrMapObj = L.map('map-hr').setView([lat, lon], 16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(hrMapObj); hrMarker = L.marker([lat, lon], {draggable: true}).addTo(hrMapObj); hrCircle = L.circle([lat, lon], { color: '#10b981', fillColor: '#10b981', fillOpacity: 0.2, radius: rad }).addTo(hrMapObj); hrMapObj.on('click', function(e) { hrMarker.setLatLng(e.latlng); hrCircle.setLatLng(e.latlng); document.getElementById('setLat').value = e.latlng.lat.toFixed(6); document.getElementById('setLon').value = e.latlng.lng.toFixed(6); }); hrMarker.on('dragend', function(e) { let pos = hrMarker.getLatLng(); hrCircle.setLatLng(pos); document.getElementById('setLat').value = pos.lat.toFixed(6); document.getElementById('setLon').value = pos.lng.toFixed(6); }); } else { hrMapObj.setView([lat, lon], 16); hrMarker.setLatLng([lat, lon]); hrCircle.setLatLng([lat, lon]); hrCircle.setRadius(rad); } setTimeout(() => { hrMapObj.invalidateSize(); }, 200); }
     function updateHrCircleRadius() { let newRad = parseFloat(document.getElementById('setRad').value) || 0; if(hrCircle) hrCircle.setRadius(newRad); }
 </script>
