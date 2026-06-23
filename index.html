@@ -157,6 +157,7 @@
             <button class="tab-btn active" id="btnEmpTabCheckin" onclick="switchEmpTab('checkin')">📷 ลงเวลา</button>
             <button class="tab-btn" id="btnEmpTabHistory" onclick="switchEmpTab('history')">📅 ปฏิทิน</button>
             <button class="tab-btn" id="btnEmpTabRequest" onclick="switchEmpTab('request')">📝 คำขอ/สถานะ</button>
+            <button class="tab-btn" id="btnEmpTabHolidays" onclick="switchEmpTab('holidays')">🏖️ วันหยุด</button>
         </div>
         
         <div id="emp-tab-checkin">
@@ -233,6 +234,23 @@
                 <table>
                     <thead><tr><th>ประเภท</th><th>รายละเอียด</th><th>วันที่ส่ง</th><th>สถานะ HR</th></tr></thead>
                     <tbody id="tb-my-reqs"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="emp-tab-holidays" class="hidden">
+            <h3 style="margin-top:0; color:var(--dark); font-size: 16px;">🏖️ วันหยุดประจำปีของบริษัท</h3>
+            <p style="font-size: 13px; color: var(--gray); margin-bottom: 15px;">รายการวันหยุดพิเศษที่บริษัทกำหนดไว้</p>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>วันที่</th>
+                            <th>ชื่อวันหยุด</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-emp-holidays"></tbody>
                 </table>
             </div>
         </div>
@@ -458,11 +476,37 @@
     function saveConfig() { let s = document.getElementById('confStart').value; let e = document.getElementById('confEnd').value; if(!s || !e) return alert("กรุณาระบุเวลาให้ครบ"); fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'save_config', start: s, end: e}) }).then(() => { alert("บันทึกเวลาบริษัทสำเร็จ"); location.reload(); }); }
 
     function switchEmpTab(tab) {
-        document.getElementById('emp-tab-checkin').classList.add('hidden'); document.getElementById('emp-tab-history').classList.add('hidden'); document.getElementById('emp-tab-request').classList.add('hidden');
-        document.getElementById('btnEmpTabCheckin').classList.remove('active'); document.getElementById('btnEmpTabHistory').classList.remove('active'); document.getElementById('btnEmpTabRequest').classList.remove('active');
-        if(tab === 'checkin') { document.getElementById('emp-tab-checkin').classList.remove('hidden'); document.getElementById('btnEmpTabCheckin').classList.add('active'); if(!videoStream) startCamera(); setTimeout(() => { if(empMapObj) empMapObj.invalidateSize(); }, 200); }
-        else if(tab === 'history') { document.getElementById('emp-tab-history').classList.remove('hidden'); document.getElementById('btnEmpTabHistory').classList.add('active'); loadMyLogs(); }
-        else { document.getElementById('emp-tab-request').classList.remove('hidden'); document.getElementById('btnEmpTabRequest').classList.add('active'); loadMyRequests(); }
+        document.getElementById('emp-tab-checkin').classList.add('hidden'); 
+        document.getElementById('emp-tab-history').classList.add('hidden'); 
+        document.getElementById('emp-tab-request').classList.add('hidden');
+        document.getElementById('emp-tab-holidays').classList.add('hidden');
+        
+        document.getElementById('btnEmpTabCheckin').classList.remove('active'); 
+        document.getElementById('btnEmpTabHistory').classList.remove('active'); 
+        document.getElementById('btnEmpTabRequest').classList.remove('active');
+        document.getElementById('btnEmpTabHolidays').classList.remove('active');
+        
+        if(tab === 'checkin') { 
+            document.getElementById('emp-tab-checkin').classList.remove('hidden'); 
+            document.getElementById('btnEmpTabCheckin').classList.add('active'); 
+            if(!videoStream) startCamera(); 
+            setTimeout(() => { if(empMapObj) empMapObj.invalidateSize(); }, 200); 
+        }
+        else if(tab === 'history') { 
+            document.getElementById('emp-tab-history').classList.remove('hidden'); 
+            document.getElementById('btnEmpTabHistory').classList.add('active'); 
+            loadMyLogs(); 
+        }
+        else if(tab === 'request') { 
+            document.getElementById('emp-tab-request').classList.remove('hidden'); 
+            document.getElementById('btnEmpTabRequest').classList.add('active'); 
+            loadMyRequests(); 
+        }
+        else if(tab === 'holidays') { 
+            document.getElementById('emp-tab-holidays').classList.remove('hidden'); 
+            document.getElementById('btnEmpTabHolidays').classList.add('active'); 
+            loadEmpHolidays(); 
+        }
     }
 
     function toggleReqForm() { document.getElementById('reqType').value === 'time' ? (document.getElementById('formTimeEdit').classList.remove('hidden'), document.getElementById('formLeave').classList.add('hidden')) : (document.getElementById('formTimeEdit').classList.add('hidden'), document.getElementById('formLeave').classList.remove('hidden')); }
@@ -576,6 +620,30 @@
             if(d.time.length === 0 && d.leave.length === 0) { tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">ไม่มีประวัติการส่งคำขอ</td></tr>'; return; }
             d.time.forEach(i => { let statusText = i[8] === 'Approved' ? 'อนุมัติแล้ว' : (i[8] === 'Rejected' ? 'ไม่อนุมัติ' : 'รอตรวจสอบ'); tb.innerHTML += `<tr><td><b>แก้ไขเวลา</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td><td style="font-size:12px;">${i[4]}</td><td style="font-size:11px;">${i[1].split(' ')[0]}</td><td><span class="status-${i[8]}">${statusText}</span></td></tr>`; });
             d.leave.forEach(i => { let statusText = i[10] === 'Approved' ? 'อนุมัติแล้ว' : (i[10] === 'Rejected' ? 'ไม่อนุมัติ' : 'รอตรวจสอบ'); tb.innerHTML += `<tr><td><b>ลางาน</b><br><span style="font-size:11px; color:var(--gray);">${i[3]}</span></td><td style="font-size:12px;">${i[4]} ถึง<br>${i[5]}</td><td style="font-size:11px;">${i[1].split(' ')[0]}</td><td><span class="status-${i[10]}">${statusText}</span></td></tr>`; });
+        });
+    }
+
+    function loadEmpHolidays() {
+        let tb = document.getElementById('tb-emp-holidays');
+        tb.innerHTML = '';
+        
+        if (!allHolidays || allHolidays.length === 0) {
+            tb.innerHTML = '<tr><td colspan="2" class="text-center" style="color:var(--gray);">ยังไม่มีประกาศวันหยุดประจำปี</td></tr>';
+            return;
+        }
+
+        let sortedHolidays = [...allHolidays].sort((a, b) => {
+            let da = a.date.split('/'); let db = b.date.split('/');
+            let dateA = new Date(da[2], da[1]-1, da[0]);
+            let dateB = new Date(db[2], db[1]-1, db[0]);
+            return dateA - dateB;
+        });
+
+        sortedHolidays.forEach(h => {
+            tb.innerHTML += `<tr>
+                <td style="font-size:13px; font-weight: 500;">${h.date}</td>
+                <td><b style="color:var(--primary);">${h.name}</b></td>
+            </tr>`;
         });
     }
 
