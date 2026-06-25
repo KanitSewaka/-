@@ -50,9 +50,10 @@
         th, td { border-bottom: 1px solid #e5e7eb; padding: 10px; text-align: left; } th { background: #f9fafb; color: var(--dark); font-weight: 600; text-transform: uppercase; font-size: 12px; }
         tr:hover { background-color: #f9fafb; }
         
-        #map-employee, #map-hr { height: 250px; width: 100%; border-radius: 8px; margin: 15px 0; border: 1px solid #d1d5db; z-index: 1;}
-        .camera-box { text-align: center; margin: 15px 0; background: #111; border-radius: 8px; overflow: hidden; padding-top: 10px; }
-        #videoElement { width: 100%; max-width: 400px; display: block; margin: auto; border-radius: 4px; } #canvasElement { display: none; }
+        #map-employee, #map-hr { width: 100%; border-radius: 8px; border: 1px solid #d1d5db; z-index: 1;}
+        #map-hr { height: 250px; margin: 15px 0;}
+        .camera-box { text-align: center; background: #111; border-radius: 8px; overflow: hidden; }
+        #videoElement { width: 100%; height: 100%; object-fit: cover; display: block; margin: auto; } #canvasElement { display: none; }
         .edit-box { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }
         .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
         .card { background: white; padding: 20px 15px; border-radius: 12px; text-align: center; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
@@ -79,32 +80,19 @@
         .loader { border: 6px solid #f3f3f3; border-top: 6px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ================= สไตล์นาฬิกา (ใหม่) ================= */
-        .digital-clock {
-            font-size: 46px;
-            font-weight: 700;
-            color: var(--primary);
-            text-align: center;
-            margin: 10px 0;
-            letter-spacing: 2px;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 12px;
-            border: 2px solid #e0e7ff;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-            font-family: 'Courier New', Courier, monospace;
+        /* ================= สไตล์หน้าจอสำเร็จ (ใหม่) ================= */
+        #successOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            z-index: 10000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
         }
-        .header-clock {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--dark);
-            background: var(--light-gray);
-            padding: 6px 12px;
-            border-radius: 6px;
-            display: inline-block;
-            margin-bottom: 8px;
-            font-family: 'Courier New', Courier, monospace;
-        }
+        #successOverlay.hidden { display: none !important; }
+
+        /* ================= สไตล์นาฬิกา ================= */
+        .digital-clock { font-size: 36px; font-weight: 700; color: var(--primary); text-align: center; margin: 5px 0; letter-spacing: 2px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 2px solid #e0e7ff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); font-family: 'Courier New', Courier, monospace; }
+        .header-clock { font-size: 16px; font-weight: 600; color: var(--dark); background: var(--light-gray); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-bottom: 8px; font-family: 'Courier New', Courier, monospace; }
 
         @media (max-width: 600px) {
             body { padding: 10px; } .box { padding: 15px; }
@@ -115,11 +103,20 @@
             .filter-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; } .filter-row input, .filter-row button { width: 100%; margin: 0; }
             .cal-header-bar { flex-direction: column; gap: 10px;} .cal-header-bar span { order: -1; font-size: 16px;} .cal-header-bar button { width: 100%; } .cal-day { min-height: 55px; }
             h2 { font-size: 18px; } .card h3 { font-size: 24px; } .tab-btn { font-size: 13px; padding: 8px 5px;}
-            .digital-clock { font-size: 38px; }
+            .digital-clock { font-size: 32px; }
         }
     </style>
 </head>
 <body>
+
+<div id="successOverlay" class="hidden">
+    <div style="font-size: 80px; margin-bottom: 10px; animation: scaleUp 0.3s ease;">✅</div>
+    <h2 id="successOverlayMsg" style="color:var(--success); text-align:center; font-size: 32px; margin-bottom: 5px;">เข้างานแล้ว!</h2>
+    <p id="successOverlayTime" style="color:var(--dark); font-size:28px; font-weight: bold; margin-bottom: 15px;">16:10:12</p>
+    <p id="successOverlayLoc" style="color:var(--gray); font-size:15px; margin-bottom: 40px; text-align:center; background:#f3f4f6; padding:8px 15px; border-radius:20px;">📍 บริษัท ONE UNITED</p>
+    <button class="btn-primary" onclick="closeSuccessOverlay()" style="width:100%; max-width: 300px; padding: 15px; font-size: 18px; border-radius: 12px; box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);">ตกลง</button>
+</div>
+<style> @keyframes scaleUp { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } } </style>
 
 <div id="loadingOverlay" class="hidden">
     <div class="loader"></div>
@@ -163,25 +160,28 @@
         <div id="emp-tab-checkin">
             <div class="digital-clock" id="mainClockEmp">00:00:00</div>
 
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
-                <p style="margin:0; font-size: 14px;">📍 สถานที่: <b id="empLocName" style="color:var(--success);">กำลังโหลด...</b></p>
-                <p id="gpsStatus" style="margin:5px 0 0 0; font-weight:600; font-size: 14px; color:var(--warning);">กำลังค้นหาตำแหน่ง...</p>
-            </div>
-            <button class="btn-grey" onclick="refreshGPS()" style="width: 100%; margin: 15px 0;">🔄 อัปเดตตำแหน่งล่าสุด</button>
-            
-            <div id="map-employee" class="hidden"></div>
-            <div class="camera-box hidden" id="cameraDiv">
-                <video id="videoElement" autoplay playsinline></video>
-                <canvas id="canvasElement"></canvas>
+            <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+                <p style="margin:0; font-size: 14px;">📍 <b id="empLocName" style="color:var(--success);">กำลังโหลด...</b></p>
+                <p id="gpsStatus" style="margin:2px 0 0 0; font-weight:600; font-size: 13px; color:var(--warning);">กำลังค้นหาตำแหน่ง...</p>
             </div>
             
             <div class="mt-3 text-center">
                 <div class="flex-gap" style="justify-content: center;">
-                    <button id="btnIn" class="btn-green hidden" onclick="checkIn('เข้างาน')" style="flex: 1; padding: 14px; font-size: 15px;">▶️ เข้างาน</button>
-                    <button id="btnOut" class="btn-red hidden" onclick="checkIn('ออกงาน')" style="flex: 1; padding: 14px; font-size: 15px;">⏹️ ออกงาน</button>
+                    <button id="btnIn" class="btn-green hidden" onclick="checkIn('เข้างาน')" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">▶️ เข้างาน</button>
+                    <button id="btnOut" class="btn-red hidden" onclick="checkIn('ออกงาน')" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">⏹️ ออกงาน</button>
                 </div>
             </div>
-            <p id="empMsg" class="text-center mt-3"></p>
+            <p id="empMsg" class="text-center mt-2" style="margin-bottom: 5px;"></p>
+
+            <button class="btn-grey" onclick="refreshGPS()" style="width: 100%; margin: 5px 0 15px 0; padding: 8px; font-size: 13px;">🔄 อัปเดตตำแหน่งล่าสุด</button>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div id="map-employee" class="hidden" style="margin:0; height: 140px; border-radius: 8px;"></div>
+                <div class="camera-box hidden" id="cameraDiv" style="margin:0; padding:0; height: 140px; border-radius: 8px;">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="canvasElement"></canvas>
+                </div>
+            </div>
         </div>
 
         <div id="emp-tab-history" class="hidden">
@@ -330,6 +330,29 @@
                     <span class="cal-tag bg-blue" style="padding:4px 6px; width:auto;">ลา</span>
                     <span class="cal-tag bg-purple" style="padding:4px 6px; width:auto;">วันหยุดบริษัท</span>
                 </div>
+            </div>
+            
+            <hr style="margin:20px 0; border:1px solid #e5e7eb;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <h3 style="margin:0; color:var(--dark); font-size: 16px;">📋 รายละเอียดการลงเวลา</h3>
+                <input type="text" id="hrSearchLogInput" placeholder="🔍 พิมพ์ค้นหา ชื่อ, วันที่, เวลา..." onkeyup="filterHrLogList()" style="width: 100%; max-width: 300px; margin: 0; padding: 8px 12px; font-size: 13px;">
+            </div>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>วันที่ - เวลา</th>
+                            <th>พนักงาน</th>
+                            <th>สถานะ</th>
+                            <th>สถานที่</th>
+                            <th>รูปถ่าย</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-hr-history-list">
+                        <tr><td colspan="5" class="text-center" style="color:var(--gray);">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -630,16 +653,33 @@
     function calculateDistance(lat1, lon1, lat2, lon2) { var p = 0.017453292519943295; var a = 0.5 - Math.cos((lat2 - lat1) * p)/2 + Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p))/2; return 12742000 * Math.asin(Math.sqrt(a)); }
 
     function checkIn(st) {
-        document.getElementById('empMsg').innerHTML = '<span style="color:var(--primary); font-weight:500;">กำลังอัปโหลด...</span>';
+        document.getElementById('empMsg').innerHTML = '<span style="color:var(--primary); font-weight:500;">กำลังบันทึกข้อมูล...</span>';
         document.getElementById('btnIn').disabled = true; document.getElementById('btnOut').disabled = true; 
         let base64Img = captureImageWithWatermark();
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams({ action: 'checkin', username: currentRealName, status: st, userLat: myLat, userLon: myLon, distance: Math.round(myDistance), locName: targetLocName, imageBase64: base64Img }) }).then(r=>r.json()).then(d => {
-            if(d.status === 'success') { document.getElementById('empMsg').innerHTML = `<span style="color:var(--success); font-weight:600;">✅ ${d.message}</span>`; } else { document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ ${d.message}</span>`; }
+            if(d.status === 'success') { 
+                document.getElementById('empMsg').innerHTML = ``; 
+                
+                // === โชว์หน้าต่างแจ้งเตือนเต็มจอ ===
+                document.getElementById('successOverlayMsg').innerText = st + 'แล้ว!';
+                document.getElementById('successOverlayTime').innerText = new Date().toLocaleTimeString('th-TH');
+                document.getElementById('successOverlayLoc').innerText = "📍 " + targetLocName;
+                document.getElementById('successOverlay').classList.remove('hidden');
+                
+                loadMyLogs(); // แอบรีเฟรชประวัติด้านหลัง
+            } else { 
+                document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ ${d.message}</span>`; 
+            }
             document.getElementById('btnIn').disabled = false; document.getElementById('btnOut').disabled = false; 
         }).catch(err => {
             document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ ขัดข้อง กรุณาลองใหม่</span>`;
             document.getElementById('btnIn').disabled = false; document.getElementById('btnOut').disabled = false; 
         });
+    }
+    
+    // ปิดหน้าจอแจ้งเตือน
+    function closeSuccessOverlay() {
+        document.getElementById('successOverlay').classList.add('hidden');
     }
 
     function submitRequest(type) {
@@ -799,8 +839,89 @@
     }
 
     function fetchUsersForDropdown() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_users'}) }).then(r=>r.json()).then(d => { let sel = document.getElementById('hrCalUserSelect'); sel.innerHTML = '<option value="">-- เลือกพนักงาน --</option>'; d.data.forEach(u => { if(u[0]) { let name = u[3] ? u[3] : u[0]; sel.innerHTML += `<option value="${name}">${name}</option>`; } }); }); }
-    function loadHrCalendarData() { if(hrAllLogs.length === 0) { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) }).then(r=>r.json()).then(d => { hrAllLogs = d.data; renderHrCalendar(); }); } else { renderHrCalendar(); } }
-    function renderHrCalendar() { let user = document.getElementById('hrCalUserSelect').value; if(!user) { document.getElementById('hrCalendarContainer').innerHTML = '<p class="text-center" style="color:var(--gray); padding:20px;">โปรดเลือกพนักงานเพื่อดูปฏิทินประวัติ</p>'; return; } let userLogs = hrAllLogs.filter(l => l[1] === user); renderCalendar('hrCalendarContainer', userLogs, hrCalDate, true); }
+    
+    function loadHrCalendarData() { 
+        if(hrAllLogs.length === 0) { 
+            fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) })
+            .then(r=>r.json()).then(d => { 
+                hrAllLogs = d.data; 
+                renderHrCalendar(); 
+            }); 
+        } else { 
+            renderHrCalendar(); 
+        } 
+    }
+    
+    function renderHrCalendar() { 
+        let user = document.getElementById('hrCalUserSelect').value; 
+        if(!user) { 
+            document.getElementById('hrCalendarContainer').innerHTML = '<p class="text-center" style="color:var(--gray); padding:20px;">โปรดเลือกพนักงานเพื่อดูปฏิทินประวัติ</p>'; 
+            filterHrLogList();
+            return; 
+        } 
+        let userLogs = hrAllLogs.filter(l => l[1] === user); 
+        renderCalendar('hrCalendarContainer', userLogs, hrCalDate, true); 
+        filterHrLogList();
+    }
+
+    function filterHrLogList() {
+        let user = document.getElementById('hrCalUserSelect').value;
+        let keywordInput = document.getElementById('hrSearchLogInput');
+        let keyword = keywordInput ? keywordInput.value.toLowerCase().trim() : '';
+        
+        let filteredLogs = hrAllLogs;
+        
+        if(user) {
+            filteredLogs = filteredLogs.filter(l => l[1] === user);
+        }
+        
+        if(keyword) {
+            filteredLogs = filteredLogs.filter(l => {
+                let datetime = l[0] ? l[0].toLowerCase() : '';
+                let empName = l[1] ? l[1].toLowerCase() : '';
+                return datetime.includes(keyword) || empName.includes(keyword);
+            });
+        }
+        
+        let tb = document.getElementById('tb-hr-history-list');
+        if(!tb) return;
+        tb.innerHTML = '';
+        
+        if(!filteredLogs || filteredLogs.length === 0) {
+            tb.innerHTML = '<tr><td colspan="5" class="text-center" style="color:var(--gray);">ไม่พบประวัติการลงเวลา</td></tr>';
+            return;
+        }
+        
+        let logsToShow = filteredLogs.slice(0, 50); 
+        
+        logsToShow.forEach(log => {
+            let datetime = log[0]; 
+            let empName = log[1];
+            let status = log[2]; 
+            let loc = log[6] || '-';
+            let imgUrl = log[7];
+            
+            let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
+            
+            let imgHtml = '-';
+            if (imgUrl && imgUrl.startsWith('http')) {
+                imgHtml = `<a href="${imgUrl}" target="_blank" style="text-decoration:none; background:#eef2f6; border:1px solid #d1d5db; padding:4px 10px; border-radius:6px; font-size:11px; color:var(--dark); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05);">🖼️ ดูรูป</a>`;
+            }
+
+            let datePart = datetime.split(' ')[0] || '-';
+            let timePart = datetime.split(' ')[1] || '-';
+
+            tb.innerHTML += `
+                <tr>
+                    <td style="font-size:12px;"><b>${datePart}</b><br><span style="color:var(--gray);">${timePart}</span></td>
+                    <td style="font-size:13px; font-weight:500; color:var(--primary);">${empName}</td>
+                    <td style="color:${statusColor}; font-weight:600; font-size:13px;">${status}</td>
+                    <td style="font-size:12px;">${loc}</td>
+                    <td>${imgHtml}</td>
+                </tr>
+            `;
+        });
+    }
 
     function loadRequests() {
         document.getElementById('tb-req-time').innerHTML = '<tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>'; document.getElementById('tb-req-leave').innerHTML = '<tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>';
