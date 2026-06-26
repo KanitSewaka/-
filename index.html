@@ -211,8 +211,13 @@
                         </tr>
                     </thead>
                     <tbody id="tb-my-history-list">
-                        </tbody>
+                    </tbody>
                 </table>
+                <div id="empPagination" class="hidden" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <button class="btn-grey" id="btnPrevEmp" onclick="changeEmpPage(-1)" style="width: auto; padding: 6px 15px;">◀ ก่อนหน้า</button>
+                    <span id="empPageInfo" style="font-size: 13px; font-weight: 600; color: var(--dark);">หน้า 1 / 1</span>
+                    <button class="btn-grey" id="btnNextEmp" onclick="changeEmpPage(1)" style="width: auto; padding: 6px 15px;">ถัดไป ▶</button>
+                </div>
             </div>
         </div>
 
@@ -353,6 +358,11 @@
                         <tr><td colspan="5" class="text-center" style="color:var(--gray);">กำลังโหลด...</td></tr>
                     </tbody>
                 </table>
+                <div id="hrPagination" class="hidden" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <button class="btn-grey" id="btnPrevHr" onclick="changeHrPage(-1)" style="width: auto; padding: 6px 15px;">◀ ก่อนหน้า</button>
+                    <span id="hrPageInfo" style="font-size: 13px; font-weight: 600; color: var(--dark);">หน้า 1 / 1</span>
+                    <button class="btn-grey" id="btnNextHr" onclick="changeHrPage(1)" style="width: auto; padding: 6px 15px;">ถัดไป ▶</button>
+                </div>
             </div>
         </div>
 
@@ -443,6 +453,13 @@
     let empMapObj = null, hrMapObj = null, hrMarker = null, hrCircle = null, videoStream = null;
     let currentLogs = [];
     let calDate = new Date(); let hrCalDate = new Date(); let hrAllLogs = [];
+    
+    // ตัวแปรสำหรับ Pagination
+    let currentEmpPage = 1;
+    const empItemsPerPage = 50;
+    let currentHrPage = 1;
+    const hrItemsPerPage = 50;
+    let hrFilteredLogsForPagination = [];
 
     // ================= ระบบนาฬิกา Real-time =================
     function updateClocks() {
@@ -677,7 +694,6 @@
         });
     }
     
-    // ปิดหน้าจอแจ้งเตือน
     function closeSuccessOverlay() {
         document.getElementById('successOverlay').classList.add('hidden');
     }
@@ -726,6 +742,9 @@
         });
     }
 
+    // ==========================================
+    // ระบบ Pagination ของพนักงาน (Employee)
+    // ==========================================
     function loadMyLogs() {
         document.getElementById('myCalendarContainer').innerHTML = '<p class="text-center">กำลังโหลดปฏิทิน...</p>';
         let tb = document.getElementById('tb-my-history-list');
@@ -735,6 +754,7 @@
         .then(r=>r.json())
         .then(d => { 
             currentLogs = d.data; 
+            currentEmpPage = 1; 
             renderCalendar('myCalendarContainer', currentLogs, calDate, false); 
             renderMyLogList();
         });
@@ -747,10 +767,19 @@
         
         if (!currentLogs || currentLogs.length === 0) {
             tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">ยังไม่มีประวัติการลงเวลา</td></tr>';
+            document.getElementById('empPagination').classList.add('hidden');
             return;
         }
 
-        let logsToShow = currentLogs.slice(0, 30); 
+        document.getElementById('empPagination').classList.remove('hidden');
+
+        let totalPages = Math.ceil(currentLogs.length / empItemsPerPage);
+        if (currentEmpPage > totalPages) currentEmpPage = totalPages;
+        if (currentEmpPage < 1) currentEmpPage = 1;
+
+        let startIdx = (currentEmpPage - 1) * empItemsPerPage;
+        let endIdx = startIdx + empItemsPerPage;
+        let logsToShow = currentLogs.slice(startIdx, endIdx); 
 
         logsToShow.forEach(log => {
             let datetime = log[0]; 
@@ -777,6 +806,15 @@
                 </tr>
             `;
         });
+
+        document.getElementById('empPageInfo').innerText = `หน้า ${currentEmpPage} / ${totalPages}`;
+        document.getElementById('btnPrevEmp').disabled = (currentEmpPage === 1);
+        document.getElementById('btnNextEmp').disabled = (currentEmpPage === totalPages);
+    }
+
+    function changeEmpPage(offset) {
+        currentEmpPage += offset;
+        renderMyLogList();
     }
 
     function changeMonth(offset, containerId, isHrView) {
@@ -831,10 +869,38 @@
     }
 
     function loadLogs() {
-        let tb = document.getElementById('tb-logs'); tb.innerHTML = '<tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>';
-        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) }).then(r=>r.json()).then(d => {
-            hrAllLogs = d.data; tb.innerHTML = '';
-            d.data.forEach(i => { let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="text-decoration:none;">🖼️</a>` : '-'; tb.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; });
+        let tb = document.getElementById('tb-logs'); 
+        
+        let cachedLogs = localStorage.getItem('cached_hr_logs');
+        if (cachedLogs) {
+            hrAllLogs = JSON.parse(cachedLogs);
+            renderSimpleLogTable(hrAllLogs, tb);
+            let tr = document.createElement('tr');
+            tr.innerHTML = '<td colspan="5" class="text-center" style="font-size:11px; color:var(--warning);">🔄 กำลังซิงค์ข้อมูลล่าสุด...</td>';
+            tb.prepend(tr);
+        } else {
+            tb.innerHTML = '<tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>';
+        }
+
+        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) })
+        .then(r=>r.json())
+        .then(d => {
+            hrAllLogs = d.data; 
+            localStorage.setItem('cached_hr_logs', JSON.stringify(hrAllLogs));
+            renderSimpleLogTable(hrAllLogs, tb);
+            
+            if (!document.getElementById('tab-hrCalendar').classList.contains('hidden')) {
+                filterHrLogList();
+            }
+        });
+    }
+
+    function renderSimpleLogTable(data, tbElement) {
+        tbElement.innerHTML = '';
+        data.forEach(i => { 
+            let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
+            let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="text-decoration:none;">🖼️</a>` : '-'; 
+            tbElement.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
         });
     }
 
@@ -864,35 +930,52 @@
         filterHrLogList();
     }
 
+    // ==========================================
+    // ระบบ Pagination ของแอดมิน (HR)
+    // ==========================================
     function filterHrLogList() {
         let user = document.getElementById('hrCalUserSelect').value;
         let keywordInput = document.getElementById('hrSearchLogInput');
         let keyword = keywordInput ? keywordInput.value.toLowerCase().trim() : '';
         
-        let filteredLogs = hrAllLogs;
+        hrFilteredLogsForPagination = hrAllLogs;
         
         if(user) {
-            filteredLogs = filteredLogs.filter(l => l[1] === user);
+            hrFilteredLogsForPagination = hrFilteredLogsForPagination.filter(l => l[1] === user);
         }
         
         if(keyword) {
-            filteredLogs = filteredLogs.filter(l => {
+            hrFilteredLogsForPagination = hrFilteredLogsForPagination.filter(l => {
                 let datetime = l[0] ? l[0].toLowerCase() : '';
                 let empName = l[1] ? l[1].toLowerCase() : '';
                 return datetime.includes(keyword) || empName.includes(keyword);
             });
         }
         
+        currentHrPage = 1; 
+        renderHrLogTable();
+    }
+
+    function renderHrLogTable() {
         let tb = document.getElementById('tb-hr-history-list');
         if(!tb) return;
         tb.innerHTML = '';
         
-        if(!filteredLogs || filteredLogs.length === 0) {
+        if(!hrFilteredLogsForPagination || hrFilteredLogsForPagination.length === 0) {
             tb.innerHTML = '<tr><td colspan="5" class="text-center" style="color:var(--gray);">ไม่พบประวัติการลงเวลา</td></tr>';
+            document.getElementById('hrPagination').classList.add('hidden');
             return;
         }
         
-        let logsToShow = filteredLogs.slice(0, 50); 
+        document.getElementById('hrPagination').classList.remove('hidden');
+        
+        let totalPages = Math.ceil(hrFilteredLogsForPagination.length / hrItemsPerPage);
+        if (currentHrPage > totalPages) currentHrPage = totalPages;
+        if (currentHrPage < 1) currentHrPage = 1;
+        
+        let startIdx = (currentHrPage - 1) * hrItemsPerPage;
+        let endIdx = startIdx + hrItemsPerPage;
+        let logsToShow = hrFilteredLogsForPagination.slice(startIdx, endIdx); 
         
         logsToShow.forEach(log => {
             let datetime = log[0]; 
@@ -921,6 +1004,15 @@
                 </tr>
             `;
         });
+        
+        document.getElementById('hrPageInfo').innerText = `หน้า ${currentHrPage} / ${totalPages}`;
+        document.getElementById('btnPrevHr').disabled = (currentHrPage === 1);
+        document.getElementById('btnNextHr').disabled = (currentHrPage === totalPages);
+    }
+
+    function changeHrPage(offset) {
+        currentHrPage += offset;
+        renderHrLogTable();
     }
 
     function loadRequests() {
