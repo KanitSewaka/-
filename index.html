@@ -68,13 +68,8 @@
         .cal-header-bar span { text-align: center; flex-grow: 1; }
         .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
         .cal-head { text-align: center; font-size: 12px; font-weight: 600; color: var(--gray); padding-bottom: 5px; }
-        .cal-day { border: 1px solid #e5e7eb; border-radius: 4px; min-height: 60px; padding: 2px; background: white; display: flex; flex-direction: column; overflow: hidden; transition: all 0.2s ease;}
+        .cal-day { border: 1px solid #e5e7eb; border-radius: 4px; min-height: 60px; padding: 2px; background: white; display: flex; flex-direction: column; overflow: hidden;}
         .cal-day.empty { background: transparent; border: none; }
-        
-        /* สไตล์ให้วันที่คลิกได้ดูโดดเด่น */
-        .cal-day:not(.empty) { cursor: pointer; }
-        .cal-day:not(.empty):hover { border-color: var(--primary); box-shadow: 0 2px 5px rgba(67, 97, 238, 0.15); transform: translateY(-1px); }
-        
         .cal-date { font-size: 12px; font-weight: bold; color: var(--dark); margin-bottom: 2px; text-align: center;}
         .cal-tag { font-size: 9px; padding: 2px 1px; border-radius: 3px; color: white; text-align: center; margin-bottom: 2px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; display: block; line-height: 1.2; }
         
@@ -205,10 +200,7 @@
             </div>
             
             <hr style="margin:20px 0; border:1px solid #e5e7eb;">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 15px;">
-                <h3 style="margin:0; color:var(--dark); font-size: 16px;">📋 รายละเอียดการลงเวลา</h3>
-            </div>
-            
+            <h3 style="margin-top:0; color:var(--dark); font-size: 16px;">📋 ประวัติการลงเวลาล่าสุด</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -462,58 +454,27 @@
     let myLat = 0, myLon = 0, myDistance = 0, targetLocName = '';
     let empMapObj = null, hrMapObj = null, hrMarker = null, hrCircle = null, videoStream = null;
     let currentLogs = [];
-    
-    // ตัวแปรสำหรับปฏิทิน และตัวกรองวันที่แบบคลิก
     let calDate = new Date(); let hrCalDate = new Date(); let hrAllLogs = [];
-    let selectedCalendarDate = ''; 
     
+    // ตัวแปรสำหรับ Pagination
     let currentEmpPage = 1;
     const empItemsPerPage = 50;
     let currentHrPage = 1;
     const hrItemsPerPage = 50;
     let hrFilteredLogsForPagination = [];
 
-    // ================= ระบบแปลงสถานะ OT อัตโนมัติ =================
-    function formatLogStatus(statusText, timeString) {
-        let display = statusText;
-        if (timeString >= "17:00:00") {
-            if (display.includes('เข้างาน')) display = display.replace('เข้างาน', 'เข้า OT');
-            if (display.includes('ออกงาน')) display = display.replace('ออกงาน', 'ออก OT');
-        }
-        return display;
-    }
-    
-    function getStatusColor(displayStatus) {
-        if (displayStatus.includes('OT')) return '#3b82f6'; 
-        if (displayStatus.includes('เข้า')) return 'var(--success)';
-        if (displayStatus.includes('ลา')) return 'var(--warning)';
-        return 'var(--danger)';
-    }
-
-    // ================= ระบบนาฬิกา Real-time และปุ่ม OT =================
+    // ================= ระบบนาฬิกา Real-time =================
     function updateClocks() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
         if(document.getElementById('headerClockEmp')) document.getElementById('headerClockEmp').innerText = timeStr;
         if(document.getElementById('mainClockEmp')) document.getElementById('mainClockEmp').innerText = timeStr;
         if(document.getElementById('headerClockAdmin')) document.getElementById('headerClockAdmin').innerText = timeStr;
-
-        let btnIn = document.getElementById('btnIn');
-        let btnOut = document.getElementById('btnOut');
-        if (btnIn && btnOut) {
-            if (timeStr >= "17:00:00") {
-                if (!btnIn.innerHTML.includes('OT')) { btnIn.innerHTML = "▶️ เข้า OT"; btnIn.style.backgroundColor = "#3b82f6"; }
-                if (!btnOut.innerHTML.includes('OT')) { btnOut.innerHTML = "⏹️ ออก OT"; btnOut.style.backgroundColor = "#3b82f6"; }
-            } else {
-                if (btnIn.innerHTML.includes('OT')) { btnIn.innerHTML = "▶️ เข้างาน"; btnIn.style.backgroundColor = ""; }
-                if (btnOut.innerHTML.includes('OT')) { btnOut.innerHTML = "⏹️ ออกงาน"; btnOut.style.backgroundColor = ""; }
-            }
-        }
     }
     setInterval(updateClocks, 1000);
     updateClocks(); 
 
-    // ================= โหลดข้อมูลรวดเดียวจบ =================
+    // ================= โหลดข้อมูลรวดเดียวจบ (Mega-Fetch) =================
     window.onload = function() {
         let savedUser = localStorage.getItem('work_checkin_user');
         let savedRole = localStorage.getItem('work_checkin_role');
@@ -595,13 +556,9 @@
         document.getElementById('btnExportExcel').href = `https://docs.google.com/spreadsheets/d/${dashData.sheetId}/export?format=xlsx`;
         let tlDiv = document.getElementById('activityTimeline'); tlDiv.innerHTML = '';
         if(dashData.activities.length === 0) { tlDiv.innerHTML = '<p style="color:var(--gray); font-size:13px;">ยังไม่มีความเคลื่อนไหววันนี้</p>'; }
-        
         dashData.activities.forEach(act => {
-            let timePart = act[0].split(' ')[1] || '';
-            let displayStatus = formatLogStatus(act[2], timePart);
-            let color = getStatusColor(displayStatus);
-            
-            tlDiv.innerHTML += `<div class="timeline-item" style="border-left-color: ${color};"><b>${act[1]}</b> <span style="color:${color}; font-weight:500;">${displayStatus}</span><br><span style="color:var(--gray); font-size:11px;">⏰ ${timePart} | 📍 ${act[6]||'-'}</span></div>`;
+            let color = act[2].includes('เข้า') ? 'var(--primary)' : (act[2].includes('ลา') ? 'var(--danger)' : 'var(--success)');
+            tlDiv.innerHTML += `<div class="timeline-item" style="border-left-color: ${color};"><b>${act[1]}</b> <span style="color:${color}; font-weight:500;">${act[2]}</span><br><span style="color:var(--gray); font-size:11px;">⏰ ${act[0].split(' ')[1]} | 📍 ${act[6]||'-'}</span></div>`;
         });
     }
 
@@ -722,15 +679,13 @@
             if(d.status === 'success') { 
                 document.getElementById('empMsg').innerHTML = ``; 
                 
-                let timeStr = new Date().toLocaleTimeString('th-TH', { hour12: false });
-                let displaySt = formatLogStatus(st, timeStr);
-                
-                document.getElementById('successOverlayMsg').innerText = displaySt + 'แล้ว!';
-                document.getElementById('successOverlayTime').innerText = timeStr;
+                // === โชว์หน้าต่างแจ้งเตือนเต็มจอ ===
+                document.getElementById('successOverlayMsg').innerText = st + 'แล้ว!';
+                document.getElementById('successOverlayTime').innerText = new Date().toLocaleTimeString('th-TH');
                 document.getElementById('successOverlayLoc').innerText = "📍 " + targetLocName;
                 document.getElementById('successOverlay').classList.remove('hidden');
                 
-                loadMyLogs(); 
+                loadMyLogs(); // แอบรีเฟรชประวัติด้านหลัง
             } else { 
                 document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ ${d.message}</span>`; 
             }
@@ -790,38 +745,12 @@
     }
 
     // ==========================================
-    // ฟังก์ชันเลือฟิลเตอร์วันที่ จากการคลิกบนปฏิทิน
-    // ==========================================
-    function selectDate(dateStr, isHrView, containerId) {
-        if (selectedCalendarDate === dateStr) {
-            selectedCalendarDate = ''; // หากคลิกซ้ำให้ยกเลิก Filter
-        } else {
-            selectedCalendarDate = dateStr;
-        }
-        
-        if (isHrView) {
-            renderCalendar(containerId, hrAllLogs.filter(l => l[1] === document.getElementById('hrCalUserSelect').value), hrCalDate, true);
-            let searchInput = document.getElementById('hrSearchLogInput');
-            if(searchInput) {
-                searchInput.value = selectedCalendarDate;
-                filterHrLogList();
-            }
-        } else {
-            renderCalendar(containerId, currentLogs, calDate, false);
-            currentEmpPage = 1;
-            renderMyLogList();
-        }
-    }
-
-    // ==========================================
     // ระบบ Pagination ของพนักงาน (Employee)
     // ==========================================
     function loadMyLogs() {
         document.getElementById('myCalendarContainer').innerHTML = '<p class="text-center">กำลังโหลดปฏิทิน...</p>';
         let tb = document.getElementById('tb-my-history-list');
         if(tb) tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">กำลังโหลดประวัติ...</td></tr>';
-        
-        selectedCalendarDate = ''; // รีเซ็ตการเลือกวันที่เมื่อโหลดใหม่
 
         fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_logs', username: currentRealName}) })
         .then(r=>r.json())
@@ -838,28 +767,21 @@
         if(!tb) return;
         tb.innerHTML = '';
         
-        // คัดกรองข้อมูลตามวันที่ที่คลิกเลือก
-        let filteredLogs = currentLogs;
-        if (selectedCalendarDate !== '') {
-            filteredLogs = filteredLogs.filter(l => l[0] && l[0].split(' ')[0] === selectedCalendarDate);
-        }
-        
-        if (!filteredLogs || filteredLogs.length === 0) {
-            let emptyMsg = selectedCalendarDate ? `ไม่พบประวัติการลงเวลาในวันที่ ${selectedCalendarDate}` : `ยังไม่มีประวัติการลงเวลา`;
-            tb.innerHTML = `<tr><td colspan="4" class="text-center" style="color:var(--gray);">${emptyMsg}</td></tr>`;
+        if (!currentLogs || currentLogs.length === 0) {
+            tb.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--gray);">ยังไม่มีประวัติการลงเวลา</td></tr>';
             document.getElementById('empPagination').classList.add('hidden');
             return;
         }
 
         document.getElementById('empPagination').classList.remove('hidden');
 
-        let totalPages = Math.ceil(filteredLogs.length / empItemsPerPage);
+        let totalPages = Math.ceil(currentLogs.length / empItemsPerPage);
         if (currentEmpPage > totalPages) currentEmpPage = totalPages;
         if (currentEmpPage < 1) currentEmpPage = 1;
 
         let startIdx = (currentEmpPage - 1) * empItemsPerPage;
         let endIdx = startIdx + empItemsPerPage;
-        let logsToShow = filteredLogs.slice(startIdx, endIdx); 
+        let logsToShow = currentLogs.slice(startIdx, endIdx); 
 
         logsToShow.forEach(log => {
             let datetime = log[0]; 
@@ -867,22 +789,20 @@
             let loc = log[6] || '-';
             let imgUrl = log[7];
             
-            let datePart = datetime.split(' ')[0] || '-';
-            let timePart = datetime.split(' ')[1] || '-';
-
-            // นำค่าสถานะมาแปลง หากเวลาเข้า-ออกเกิน 17:00
-            let displayStatus = formatLogStatus(status, timePart);
-            let statusColor = getStatusColor(displayStatus);
+            let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
             
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
                 imgHtml = `<a href="${imgUrl}" target="_blank" style="text-decoration:none; background:#eef2f6; border:1px solid #d1d5db; padding:4px 10px; border-radius:6px; font-size:11px; color:var(--dark); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05);">🖼️ ดูรูป</a>`;
             }
 
+            let datePart = datetime.split(' ')[0] || '-';
+            let timePart = datetime.split(' ')[1] || '-';
+
             tb.innerHTML += `
                 <tr>
                     <td style="font-size:12px;"><b>${datePart}</b><br><span style="color:var(--gray);">${timePart}</span></td>
-                    <td style="color:${statusColor}; font-weight:600; font-size:13px;">${displayStatus}</td>
+                    <td style="color:${statusColor}; font-weight:600; font-size:13px;">${status}</td>
                     <td style="font-size:12px;">${loc}</td>
                     <td>${imgHtml}</td>
                 </tr>
@@ -904,6 +824,7 @@
         else { calDate.setMonth(calDate.getMonth() + offset); renderCalendar(containerId, currentLogs, calDate, false); }
     }
 
+    // แก้ไขฟังก์ชัน renderCalendar (ระบบ OT)
     function renderCalendar(containerId, logs, dateObj, isHrView) {
         let container = document.getElementById(containerId); let month = dateObj.getMonth(); let year = dateObj.getFullYear();
         let monthNames = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -920,26 +841,30 @@
             let hasCheckIn = false, hasLeave = false, leaveLabel = 'ลางาน'; 
             let isHoliday = allHolidays.find(h => h.date === dateStr); let isWeekend = (loopDate.getDay() === 0);
             
-            let checkInTagsHTML = '';
+            let checkInTagsHTML = ''; // ตัวแปรเก็บ Tag การเข้างานที่อาจมีหลายรอบในวันเดียว
             
+            // เรียงลำดับเวลาเข้างานจากเช้าไปเย็น เพื่อให้ "ปกติ" อยู่ด้านบน และ "OT" อยู่ด้านล่าง
             let sortedDayLogs = [...dayLogs].sort((a, b) => a[0].localeCompare(b[0]));
 
             sortedDayLogs.forEach(l => { 
                 if(l[2].includes('ลา')) { hasLeave = true; leaveLabel = l[2]; } 
                 if(l[2].includes('เข้างาน')) { 
                     hasCheckIn = true; 
-                    let checkInTime = l[0].split(' ')[1] || ''; 
+                    let checkInTime = l[0].split(' ')[1]; // ดึงเฉพาะเวลา เช่น "08:20:00" หรือ "17:30:00"
                     
                     if (l[2].includes('ลืมเช็คอิน')) { 
                         if (!checkInTagsHTML.includes('ปกติ(ลืม)')) checkInTagsHTML += `<div class="cal-tag bg-green">ปกติ(ลืม)</div>`;
                     } 
                     else if (checkInTime >= "17:00:00") {
+                        // เข้างานหลัง 17:00 (5 โมงเย็น) ให้แสดง OT ทันที โดยไม่ขึ้นสาย
                         if (!checkInTagsHTML.includes('OT')) checkInTagsHTML += `<div class="cal-tag" style="background-color: #3b82f6;">OT</div>`;
                     }
                     else if(checkInTime > workConfig.start + ":00") { 
+                        // เข้างานสาย (เข้าหลังเวลาเริ่มงาน แต่เข้าก่อน 17:00)
                         if (!checkInTagsHTML.includes('สาย')) checkInTagsHTML += `<div class="cal-tag bg-orange">สาย</div>`; 
                     } 
                     else {
+                        // เข้างานปกติ
                         if (!checkInTagsHTML.includes('>ปกติ<')) checkInTagsHTML += `<div class="cal-tag bg-green">ปกติ</div>`;
                     }
                 } 
@@ -953,16 +878,14 @@
                 tags += `<div class="cal-tag bg-blue">${leaveLabel}</div>`; 
             } 
             else if(hasCheckIn) { 
+                // นำ Tag ที่สะสมไว้ทั้งหมดมาแสดง
                 tags += checkInTagsHTML;
             } 
             else if(!isWeekend && !isHoliday && loopDate < today) { 
                 tags += `<div class="cal-tag bg-red">ขาดงาน</div>`; 
             }
             
-            // เพิ่มการตรวจจับวันที่ถูกคลิก เพื่อใส่ลูกเล่นสีฟ้า
-            let isSelectedStyle = (selectedCalendarDate === dateStr) ? 'border: 2px solid var(--primary); background-color: #e0e7ff;' : '';
-            
-            html += `<div class="cal-day" style="${isSelectedStyle}" onclick="selectDate('${dateStr}', ${isHrView}, '${containerId}')"><div class="cal-date">${d}</div>${tags}</div>`;
+            html += `<div class="cal-day"><div class="cal-date">${d}</div>${tags}</div>`;
         }
         html += `</div>`; container.innerHTML = html;
     }
@@ -1004,22 +927,15 @@
     function renderSimpleLogTable(data, tbElement) {
         tbElement.innerHTML = '';
         data.forEach(i => { 
-            let timePart = i[0].split(' ')[1] || '';
-            let displayStatus = formatLogStatus(i[2], timePart);
-            let c = getStatusColor(displayStatus);
-            
+            let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
             let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="text-decoration:none;">🖼️</a>` : '-'; 
-            tbElement.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${displayStatus}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
+            tbElement.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
         });
     }
 
     function fetchUsersForDropdown() { fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_users'}) }).then(r=>r.json()).then(d => { let sel = document.getElementById('hrCalUserSelect'); sel.innerHTML = '<option value="">-- เลือกพนักงาน --</option>'; d.data.forEach(u => { if(u[0]) { let name = u[3] ? u[3] : u[0]; sel.innerHTML += `<option value="${name}">${name}</option>`; } }); }); }
     
     function loadHrCalendarData() { 
-        selectedCalendarDate = ''; // รีเซ็ตทุกครั้งที่เข้ามาหน้าปฏิทิน
-        let searchInput = document.getElementById('hrSearchLogInput');
-        if(searchInput) searchInput.value = '';
-        
         if(hrAllLogs.length === 0) { 
             fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_logs'}) })
             .then(r=>r.json()).then(d => { 
@@ -1075,8 +991,7 @@
         tb.innerHTML = '';
         
         if(!hrFilteredLogsForPagination || hrFilteredLogsForPagination.length === 0) {
-            let emptyMsg = selectedCalendarDate ? `ไม่พบประวัติการลงเวลาในวันที่ ${selectedCalendarDate}` : `ไม่พบประวัติการลงเวลา`;
-            tb.innerHTML = `<tr><td colspan="5" class="text-center" style="color:var(--gray);">${emptyMsg}</td></tr>`;
+            tb.innerHTML = '<tr><td colspan="5" class="text-center" style="color:var(--gray);">ไม่พบประวัติการลงเวลา</td></tr>';
             document.getElementById('hrPagination').classList.add('hidden');
             return;
         }
@@ -1098,23 +1013,21 @@
             let loc = log[6] || '-';
             let imgUrl = log[7];
             
-            let datePart = datetime.split(' ')[0] || '-';
-            let timePart = datetime.split(' ')[1] || '-';
-
-            // นำค่าสถานะมาแปลง หากเวลาเข้า-ออกเกิน 17:00
-            let displayStatus = formatLogStatus(status, timePart);
-            let statusColor = getStatusColor(displayStatus);
+            let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
             
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
                 imgHtml = `<a href="${imgUrl}" target="_blank" style="text-decoration:none; background:#eef2f6; border:1px solid #d1d5db; padding:4px 10px; border-radius:6px; font-size:11px; color:var(--dark); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05);">🖼️ ดูรูป</a>`;
             }
 
+            let datePart = datetime.split(' ')[0] || '-';
+            let timePart = datetime.split(' ')[1] || '-';
+
             tb.innerHTML += `
                 <tr>
                     <td style="font-size:12px;"><b>${datePart}</b><br><span style="color:var(--gray);">${timePart}</span></td>
                     <td style="font-size:13px; font-weight:500; color:var(--primary);">${empName}</td>
-                    <td style="color:${statusColor}; font-weight:600; font-size:13px;">${displayStatus}</td>
+                    <td style="color:${statusColor}; font-weight:600; font-size:13px;">${status}</td>
                     <td style="font-size:12px;">${loc}</td>
                     <td>${imgHtml}</td>
                 </tr>
