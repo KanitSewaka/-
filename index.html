@@ -168,6 +168,7 @@
             </div>
             
             <div class="mt-3 text-center">
+                <!-- ปรับปุ่มให้เปลี่ยนฟังก์ชันด้วย JavaScript แบบ Dynamic -->
                 <div class="flex-gap" style="justify-content: center;">
                     <button id="btnIn" class="btn-green hidden" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); transition: all 0.3s;">▶️ เข้างาน</button>
                     <button id="btnOut" class="btn-red hidden" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3); transition: all 0.3s;">⏹️ ออกงาน</button>
@@ -194,8 +195,7 @@
                     <span class="cal-tag bg-green" style="padding:4px 6px; width:auto;">ปกติ</span>
                     <span class="cal-tag bg-green" style="padding:4px 6px; width:auto;">ลืมเช็คอิน</span>
                     <span class="cal-tag bg-orange legend-late" style="padding:4px 6px; width:auto;">เข้าสาย</span>
-                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #3b82f6; color: white;">เข้า OT</span>
-                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #eab308; color: white;">ออก OT</span>
+                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #3b82f6; color: white;">OT</span>
                     <span class="cal-tag bg-red" style="padding:4px 6px; width:auto;">ขาดงาน</span>
                     <span class="cal-tag bg-blue" style="padding:4px 6px; width:auto;">ลา</span>
                     <span class="cal-tag bg-purple" style="padding:4px 6px; width:auto;">วันหยุดพิเศษ</span>
@@ -341,8 +341,7 @@
                     <span class="cal-tag bg-green" style="padding:4px 6px; width:auto;">ปกติ</span>
                     <span class="cal-tag bg-green" style="padding:4px 6px; width:auto;">ลืมเช็คอิน</span>
                     <span class="cal-tag bg-orange legend-late" style="padding:4px 6px; width:auto;">เข้าสาย</span>
-                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #3b82f6; color: white;">เข้า OT</span>
-                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #eab308; color: white;">ออก OT</span>
+                    <span class="cal-tag" style="padding:4px 6px; width:auto; background-color: #3b82f6; color: white;">OT</span>
                     <span class="cal-tag bg-red" style="padding:4px 6px; width:auto;">ขาดงาน</span>
                     <span class="cal-tag bg-blue" style="padding:4px 6px; width:auto;">ลา</span>
                     <span class="cal-tag bg-purple" style="padding:4px 6px; width:auto;">วันหยุดบริษัท</span>
@@ -918,8 +917,6 @@
             let imgUrl = log[7];
             
             let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
-            if (status === 'เข้างาน(OT)') statusColor = '#3b82f6'; // สีน้ำเงิน
-            else if (status === 'ออกงาน(OT)') statusColor = '#eab308'; // สีเหลือง
             
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
@@ -982,11 +979,8 @@
                     if (l[2].includes('ลืมเช็คอิน')) { 
                         if (!checkInTagsHTML.includes('ปกติ(ลืม)')) checkInTagsHTML += `<div class="cal-tag bg-green">ปกติ(ลืม)</div>`;
                     } 
-                    else if (l[2] === 'เข้างาน(OT)') {
-                        if (!checkInTagsHTML.includes('เข้า OT')) checkInTagsHTML += `<div class="cal-tag" style="background-color: #3b82f6;">เข้า OT</div>`;
-                    }
-                    else if (l[2] === 'ออกงาน(OT)') {
-                        if (!checkInTagsHTML.includes('ออก OT')) checkInTagsHTML += `<div class="cal-tag" style="background-color: #eab308;">ออก OT</div>`;
+                    else if (l[2].includes('OT')) {
+                        if (!checkInTagsHTML.includes('>OT<')) checkInTagsHTML += `<div class="cal-tag" style="background-color: #3b82f6;">OT</div>`;
                     }
                     else if(l[2].includes('เข้างาน') && l[0].split(' ')[1] > workConfig.start + ":00") { 
                         if (!checkInTagsHTML.includes('สาย')) checkInTagsHTML += `<div class="cal-tag bg-orange">สาย</div>`; 
@@ -1075,8 +1069,6 @@
 
         logsToShow.forEach(i => { 
             let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
-            if (i[2] === 'เข้างาน(OT)') c = '#3b82f6';
-            else if (i[2] === 'ออกงาน(OT)') c = '#eab308';
             let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="text-decoration:none;">🖼️</a>` : '-'; 
             tb.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
         });
@@ -1169,8 +1161,6 @@
             let imgUrl = log[7];
             
             let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
-            if (status === 'เข้างาน(OT)') statusColor = '#3b82f6'; // สีน้ำเงิน
-            else if (status === 'ออกงาน(OT)') statusColor = '#eab308'; // สีเหลือง
 
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
