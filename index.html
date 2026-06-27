@@ -168,9 +168,10 @@
             </div>
             
             <div class="mt-3 text-center">
+                <!-- ปรับปุ่มให้เปลี่ยนฟังก์ชันด้วย JavaScript แบบ Dynamic -->
                 <div class="flex-gap" style="justify-content: center;">
-                    <button id="btnIn" class="btn-green hidden" onclick="checkIn('เข้างาน')" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">▶️ เข้างาน</button>
-                    <button id="btnOut" class="btn-red hidden" onclick="checkIn('ออกงาน')" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">⏹️ ออกงาน</button>
+                    <button id="btnIn" class="btn-green hidden" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); transition: all 0.3s;">▶️ เข้างาน</button>
+                    <button id="btnOut" class="btn-red hidden" style="flex: 1; padding: 15px; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3); transition: all 0.3s;">⏹️ ออกงาน</button>
                 </div>
             </div>
             <p id="empMsg" class="text-center mt-2" style="margin-bottom: 5px;"></p>
@@ -464,7 +465,6 @@
     let currentLogs = [];
     let calDate = new Date(); let hrCalDate = new Date(); let hrAllLogs = [];
     
-    // ตัวแปรสำหรับ Pagination
     let currentEmpPage = 1;
     const empItemsPerPage = 50;
     
@@ -472,22 +472,24 @@
     const hrItemsPerPage = 50;
     let hrFilteredLogsForPagination = [];
 
-    // เพิ่มตัวแปรสำหรับ Pagination หน้าประวัติ
     let currentMainLogsPage = 1;
     const mainLogsPerPage = 50;
 
-    // ================= ระบบนาฬิกา Real-time =================
     function updateClocks() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
         if(document.getElementById('headerClockEmp')) document.getElementById('headerClockEmp').innerText = timeStr;
         if(document.getElementById('mainClockEmp')) document.getElementById('mainClockEmp').innerText = timeStr;
         if(document.getElementById('headerClockAdmin')) document.getElementById('headerClockAdmin').innerText = timeStr;
+        
+        // อัปเดตสถานะปุ่มตลอดเวลาแบบเรียลไทม์ (ถ้าอยู่หน้าลงเวลา)
+        if (currentRole === 'employee' && !document.getElementById('emp-tab-checkin').classList.contains('hidden')) {
+            if (myLat !== 0) updateCheckInButtons();
+        }
     }
     setInterval(updateClocks, 1000);
     updateClocks(); 
 
-    // ================= โหลดข้อมูลรวดเดียวจบ (Mega-Fetch) =================
     window.onload = function() {
         let savedUser = localStorage.getItem('work_checkin_user');
         let savedRole = localStorage.getItem('work_checkin_role');
@@ -522,7 +524,14 @@
                         document.getElementById('empSec').classList.remove('hidden'); 
                         document.getElementById('empName').innerText = currentRealName; 
                         allLocations = d.locations || [];
-                        refreshGPS(); startCamera();
+                        
+                        // ✅ ดึงข้อมูลประวัติทันทีเพื่อเช็คสถานะปุ่มให้ถูกต้อง
+                        fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_logs', username: currentRealName}) })
+                        .then(r=>r.json()).then(logData => {
+                            currentLogs = logData.data || [];
+                            refreshGPS(); startCamera();
+                        });
+                        
                     } else {
                         document.getElementById('hrSec').classList.remove('hidden'); 
                         document.getElementById('roleTitle').innerText = (currentRole === 'supervisor' ? "Supervisor" : "HR Admin");
@@ -654,6 +663,81 @@
         if(navigator.geolocation) { navigator.geolocation.getCurrentPosition(checkPosition, err => { document.getElementById('gpsStatus').innerHTML = '<span style="color:var(--danger);">ไม่สามารถเข้าถึง GPS ได้</span>'; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 10000}); }
     }
 
+    // ✅ ฟังก์ชันใหม่ ควบคุมตรรกะการเปลี่ยนปุ่ม เข้า/ออก/OT
+    function updateCheckInButtons() {
+        let now = new Date();
+        let isAfter5 = now.getHours() >= 17; // หลัง 17:00 ถือเป็นช่วง OT
+        
+        // หากลุ่ม Log ของวันนี้
+        let todayPrefix = ('0' + now.getDate()).slice(-2) + '/' + ('0' + (now.getMonth()+1)).slice(-2) + '/' + now.getFullYear();
+        let todayLogs = currentLogs.filter(l => l[0].startsWith(todayPrefix));
+        
+        let hasIn = todayLogs.some(l => l[2].includes('เข้างาน') && !l[2].includes('OT'));
+        let hasOut = todayLogs.some(l => l[2].includes('ออกงาน') && !l[2].includes('OT'));
+        let hasOtIn = todayLogs.some(l => l[2] === 'เข้างาน(OT)');
+        let hasOtOut = todayLogs.some(l => l[2] === 'ออกงาน(OT)');
+        
+        let btnIn = document.getElementById('btnIn');
+        let btnOut = document.getElementById('btnOut');
+        
+        // ล้างสไตล์
+        btnIn.style.opacity = "1"; 
+        btnOut.style.opacity = "1";
+        
+        if (isAfter5) {
+            // ================== หลัง 17:00 (ระบบ OT) ==================
+            if (!hasOut) {
+                // กรณียังไม่ได้กด ออกงาน(ปกติ)
+                btnIn.innerText = "▶️ เข้างาน (OT)";
+                btnIn.onclick = () => alert('⚠️ กรุณากด "ออกงาน" ปกติก่อน ถึงจะสามารถกดเข้า OT ได้');
+                btnIn.style.opacity = "0.5";
+                
+                btnOut.innerText = "⏹️ ออกงาน";
+                btnOut.onclick = () => checkIn('ออกงาน');
+            } else {
+                // กดออกงาน(ปกติ)แล้ว พร้อมเข้าสู่ระบบ OT
+                btnIn.innerText = "▶️ เข้างาน (OT)";
+                if (hasOtIn) {
+                    btnIn.onclick = () => alert('✅ คุณเข้างาน OT ไปแล้ว');
+                    btnIn.style.opacity = "0.5";
+                } else {
+                    btnIn.onclick = () => checkIn('เข้างาน(OT)');
+                }
+                
+                btnOut.innerText = "⏹️ ออกงาน (OT)";
+                if (!hasOtIn) {
+                    btnOut.onclick = () => alert('⚠️ กรุณากด "เข้างาน (OT)" ก่อน');
+                    btnOut.style.opacity = "0.5";
+                } else if (hasOtOut) {
+                    btnOut.onclick = () => alert('✅ คุณออกงาน OT ไปแล้ว');
+                    btnOut.style.opacity = "0.5";
+                } else {
+                    btnOut.onclick = () => checkIn('ออกงาน(OT)');
+                }
+            }
+        } else {
+            // ================== ก่อน 17:00 (ระบบปกติ) ==================
+            btnIn.innerText = "▶️ เข้างาน";
+            if (hasIn) {
+                btnIn.onclick = () => alert('✅ คุณเข้างานไปแล้ว');
+                btnIn.style.opacity = "0.5";
+            } else {
+                btnIn.onclick = () => checkIn('เข้างาน');
+            }
+            
+            btnOut.innerText = "⏹️ ออกงาน";
+            if (hasOut) {
+                btnOut.onclick = () => alert('✅ คุณออกงานไปแล้ว');
+                btnOut.style.opacity = "0.5";
+            } else if (!hasIn) {
+                btnOut.onclick = () => alert('⚠️ กรุณากด "เข้างาน" ก่อน');
+                btnOut.style.opacity = "0.5";
+            } else {
+                btnOut.onclick = () => checkIn('ออกงาน');
+            }
+        }
+    }
+
     function checkPosition(position) {
         myLat = position.coords.latitude; myLon = position.coords.longitude; let closestDist = Infinity, insideLoc = null, closestLoc = null;
         allLocations.forEach(loc => { let dist = calculateDistance(myLat, myLon, parseFloat(loc.lat), parseFloat(loc.lon)); if(dist < closestDist) { closestDist = dist; closestLoc = loc; } if(dist <= parseFloat(loc.radius)) insideLoc = loc; });
@@ -662,6 +746,10 @@
             targetLocName = insideLoc.name; myDistance = closestDist;
             document.getElementById('empLocName').innerText = targetLocName; document.getElementById('gpsStatus').innerHTML = `<span style="color:var(--success);">อยู่ในพื้นที่ (ห่าง ${Math.round(myDistance)} ม.)</span>`;
             document.getElementById('btnIn').classList.remove('hidden'); document.getElementById('btnOut').classList.remove('hidden');
+            
+            // ✅ เรียกใช้อัปเดตสถานะปุ่ม
+            updateCheckInButtons();
+            
             document.getElementById('cameraDiv').classList.remove('hidden'); 
         } else {
             myDistance = closestDist; targetLocName = closestLoc ? closestLoc.name : '-';
@@ -692,13 +780,22 @@
             if(d.status === 'success') { 
                 document.getElementById('empMsg').innerHTML = ``; 
                 
-                // === โชว์หน้าต่างแจ้งเตือนเต็มจอ ===
                 document.getElementById('successOverlayMsg').innerText = st + 'แล้ว!';
                 document.getElementById('successOverlayTime').innerText = new Date().toLocaleTimeString('th-TH');
                 document.getElementById('successOverlayLoc').innerText = "📍 " + targetLocName;
                 document.getElementById('successOverlay').classList.remove('hidden');
                 
-                loadMyLogs(); // แอบรีเฟรชประวัติด้านหลัง
+                // ✅ โหลดประวัติใหม่ เพื่ออัปเดตระบบล็อคปุ่มโดยไม่ต้องรีเฟรชหน้า
+                fetch(scriptURL, { method: 'POST', body: new URLSearchParams({action: 'get_my_logs', username: currentRealName}) })
+                .then(r=>r.json())
+                .then(logData => { 
+                    currentLogs = logData.data || []; 
+                    updateCheckInButtons(); 
+                    if(!document.getElementById('emp-tab-history').classList.contains('hidden')) {
+                        renderMyLogList();
+                    }
+                });
+                
             } else { 
                 document.getElementById('empMsg').innerHTML = `<span style="color:var(--danger); font-weight:600;">❌ ${d.message}</span>`; 
             }
@@ -757,9 +854,6 @@
         });
     }
 
-    // ==========================================
-    // ระบบ Pagination ของพนักงาน (Employee)
-    // ==========================================
     function loadMyLogs() {
         document.getElementById('myCalendarContainer').innerHTML = '<p class="text-center">กำลังโหลดปฏิทิน...</p>';
         let tb = document.getElementById('tb-my-history-list');
@@ -803,6 +897,7 @@
             let imgUrl = log[7];
             
             let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
+            if (status.includes('OT')) statusColor = '#3b82f6';
             
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
@@ -856,22 +951,22 @@
             
             let sortedDayLogs = [...dayLogs].sort((a, b) => a[0].localeCompare(b[0]));
 
+            // ✅ ปรับเงื่อนไขการวาด Tag ปฏิทินให้รองรับ OT ถูกต้องแม่นยำ
             sortedDayLogs.forEach(l => { 
                 if(l[2].includes('ลา')) { hasLeave = true; leaveLabel = l[2]; } 
-                if(l[2].includes('เข้างาน')) { 
+                if(l[2].includes('เข้างาน') || l[2].includes('ออกงาน')) { 
                     hasCheckIn = true; 
-                    let checkInTime = l[0].split(' ')[1]; 
                     
                     if (l[2].includes('ลืมเช็คอิน')) { 
                         if (!checkInTagsHTML.includes('ปกติ(ลืม)')) checkInTagsHTML += `<div class="cal-tag bg-green">ปกติ(ลืม)</div>`;
                     } 
-                    else if (checkInTime >= "17:00:00") {
+                    else if (l[2].includes('OT')) {
                         if (!checkInTagsHTML.includes('OT')) checkInTagsHTML += `<div class="cal-tag" style="background-color: #3b82f6;">OT</div>`;
                     }
-                    else if(checkInTime > workConfig.start + ":00") { 
+                    else if(l[2].includes('เข้างาน') && l[0].split(' ')[1] > workConfig.start + ":00") { 
                         if (!checkInTagsHTML.includes('สาย')) checkInTagsHTML += `<div class="cal-tag bg-orange">สาย</div>`; 
                     } 
-                    else {
+                    else if(l[2].includes('เข้างาน')) {
                         if (!checkInTagsHTML.includes('>ปกติ<')) checkInTagsHTML += `<div class="cal-tag bg-green">ปกติ</div>`;
                     }
                 } 
@@ -955,6 +1050,7 @@
 
         logsToShow.forEach(i => { 
             let c = i[2].includes('เข้า') ? 'var(--success)' : (i[2].includes('ลา') ? 'var(--warning)' : 'var(--danger)'); 
+            if (i[2].includes('OT')) c = '#3b82f6';
             let imgLink = i[7] && i[7].startsWith('http') ? `<a href="${i[7]}" target="_blank" style="text-decoration:none;">🖼️</a>` : '-'; 
             tb.innerHTML += `<tr><td>${i[0]}</td><td style="font-weight:500;">${i[1]}</td><td style="color:${c}; font-weight:600;">${i[2]}</td><td>${i[6]||'-'}</td><td>${imgLink}</td></tr>`; 
         });
@@ -995,9 +1091,6 @@
         filterHrLogList();
     }
 
-    // ==========================================
-    // ระบบ Pagination ของแอดมิน (HR)
-    // ==========================================
     function filterHrLogList() {
         let user = document.getElementById('hrCalUserSelect').value;
         let keywordInput = document.getElementById('hrSearchLogInput');
@@ -1050,7 +1143,8 @@
             let imgUrl = log[7];
             
             let statusColor = status.includes('เข้า') ? 'var(--success)' : (status.includes('ลา') ? 'var(--warning)' : 'var(--danger)');
-            
+            if (status.includes('OT')) statusColor = '#3b82f6';
+
             let imgHtml = '-';
             if (imgUrl && imgUrl.startsWith('http')) {
                 imgHtml = `<a href="${imgUrl}" target="_blank" style="text-decoration:none; background:#eef2f6; border:1px solid #d1d5db; padding:4px 10px; border-radius:6px; font-size:11px; color:var(--dark); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05);">🖼️ ดูรูป</a>`;
